@@ -1,3 +1,5 @@
+"use client"
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -9,8 +11,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useRouter } from "next/navigation"
 
 export function UserNav() {
+  const router = useRouter()
+
+  const handleLogout = () => {
+    // Clear the auth cookie
+    document.cookie = "auth_token=; path=/; max-age=0"
+    // Redirect to login page
+    router.push("/login")
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -37,7 +49,9 @@ export function UserNav() {
           <DropdownMenuItem className="text-purple-700 dark:text-purple-300">Notifications</DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="text-purple-700 dark:text-purple-300">Log out</DropdownMenuItem>
+        <DropdownMenuItem className="text-purple-700 dark:text-purple-300 cursor-pointer" onClick={handleLogout}>
+          Log out
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

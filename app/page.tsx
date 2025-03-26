@@ -1,3 +1,5 @@
+"use client"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { InventoryTable } from "@/components/inventory-table"
 import { RecentActivity } from "@/components/recent-activity"
