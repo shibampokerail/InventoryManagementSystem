@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { InventoryTable } from "@/components/inventory-table"
@@ -12,8 +12,13 @@ import { PlusCircle, AlertTriangle, CheckCircle2, Package } from "lucide-react"
 import { InventoryFullView } from "@/components/inventory-full-view"
 import { CheckoutForm } from "@/components/checkout-form"
 import { ReportsView } from "@/components/reports-view"
-
+import { useEffect, useState } from "react"
 export default function InventoryDashboard() {
+    const [isClient, setIsClient] = useState(false);
+  
+    useEffect(() => {
+      setIsClient(true);
+    }, []);
   return (
     <div className="flex min-h-screen flex-col">
       <div className="border-b bg-purple-50 dark:bg-purple-950">
