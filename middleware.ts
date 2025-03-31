@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(req: NextRequest) {
@@ -8,3 +9,12 @@ export function middleware(req: NextRequest) {
 
   return NextResponse.next();
 }
+=======
+import { NextResponse } from 'next/server';
+
+export function middleware(request: Request) {
+  // Example middleware logic
+  console.log('Middleware executed');
+  return NextResponse.next();
+}
+>>>>>>> Stashed changes

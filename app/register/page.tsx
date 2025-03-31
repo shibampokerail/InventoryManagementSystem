@@ -273,7 +273,7 @@ export default function RegisterPage() {
         </Card>
 
         <div className="mt-8 text-center text-sm text-purple-600 dark:text-purple-400">
-          © {new Date().getFullYear()} Truman State University. All rights reserved.
+          © Truman State University. All rights reserved.
         </div>
       </div>
     </div>
