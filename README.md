@@ -22,7 +22,8 @@ The system follows a three-tier architecture:
 2. **Backend (Application Layer):** Flask (Python)
 3. **Database (Data Layer):** MongoDB
 
-Each layer is responsible for a specific function, ensuring modularity and scalability.
+![image](https://github.com/user-attachments/assets/1bffd53b-645a-4597-9334-1484405b13fc)
+
 
 ## Features
 ### Slack Bot (Python + Slack API)
