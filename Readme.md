@@ -11,7 +11,9 @@ This README provides all the information you need to set up and use a Slack bot 
 3. [Prerequisites](#prerequisites)
 4. [Setup](#setup)
 5. [Classes and Methods](#classes-and-methods)
-6. [Usage](#usage)
+6. [Commands](#commands)
+7. [Usage](#usage)
+
 
 ---
 
@@ -114,6 +116,96 @@ This class uses Slack's Bolt framework to interact with events in real-time, suc
 
 ---
 
+## Commands
+
+This section lists the types of commands the bot listens for and the expected responses.
+
+### 1. **Shift Requests**
+
+The bot can detect and log shift coverage requests. When a user requests shift coverage, the bot responds as follows:
+
+#### Command Examples:
+- **"Can someone please cover my shift?"**
+- **"I cannot come in today, is anyone available to cover?"**
+- **"Cover my evening shift!"**
+
+#### Bot Response:
+- Logs the request in the **manager-logs** channel.
+- Sends a message in the channel confirming the shift coverage request.
+
+Example:
+```
+ Shift coverage request from <@U12345678>: "Can someone please cover my evening shift?"
+```
+
+---
+
+### 2. **Shift Acceptance**
+
+When someone accepts a shift coverage request, the bot can detect the acceptance and confirm the coverage.
+
+#### Command Examples:
+- **"I can cover the shift."**
+- **"I’ll cover it!"**
+- **"Can cover"**
+
+#### Bot Response:
+- Logs the coverage in the **manager-logs** channel.
+- Confirms the coverage with a message like:
+  ```
+   <@U87654321> has agreed to cover <@U12345678>'s shift!
+  ```
+
+---
+
+### 3. **Inventory Management**
+
+The bot can manage inventory by updating, replenishing, or checking the stock of items. Commands related to inventory include:
+
+#### Command Examples:
+- **"How many paper towels do we have?"**
+- **"Restock toilet paper by 3 rolls."**
+- **"Used 2 packs of liquid soap."**
+
+#### Bot Response:
+- **Inventory check**: Displays the current stock.
+  ```
+  Current stock of paper towels: 10
+  ```
+- **Restocking**: Updates the stock and notifies when items are restocked.
+  ```
+  5 paper towels added back to the inventory. Total: 15 remaining.
+  ```
+- **Updating inventory**: Notifies if stock is low or out of stock.
+  ```
+  2 packs of liquid soap removed from the inventory. 3 remaining.
+  ```
+
+---
+
+### 4. **General Commands**
+
+The bot can also respond to other general queries, like showing the inventory or providing reminders.
+
+#### Command Examples:
+- **"Show inventory."**
+- **"Set a reminder for 9 AM to send a report."**
+
+#### Bot Response:
+- **Inventory display**: Lists all current items and their quantities.
+  ```
+  **Current Inventory:**
+  - paper towels: 10
+  - packs of liquid soap: 5
+  - toilet paper: 12
+  ```
+- **Setting reminders**: Confirms that the reminder has been set.
+  ```
+  Reminder set for 9:00 AM: "Send the report."
+  ```
+
+---
+
 ## Usage
 
 ### 1. Posting Messages
@@ -152,3 +244,5 @@ Can someone please cover my evening shift?
 ```
 
 The bot detects this message and logs the request. When someone agrees to cover the shift, the bot confirms the coverage.
+
+---
