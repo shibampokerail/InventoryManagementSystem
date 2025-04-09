@@ -43,14 +43,5 @@ and this project provides a modern and user-friendly interface for inventory man
 4. Open in your local browser:
    http://localhost:3000
 
-## Folder Structure
-.
-├── app/
-│   ├── page.tsx          # Main dashboard page
-│   ├── components/       # Reusable UI components
-│   ├── styles/           # Global styles
-├── public/               # Static assets
-├── middleware.ts         # Middleware for authentication
-├── package.json          # Project dependencies and scripts
-└── README.md             # Project documentation
+
 
