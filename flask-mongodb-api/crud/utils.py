@@ -10,7 +10,7 @@ from datetime import datetime
 # Load environment variables
 load_dotenv()
 MONGO_URI = os.getenv('MONGO_URI')
-DB_NAME = 'union_involvement'
+DB_NAME = os.getenv('DB_NAME')
 SLACKBOT_API_KEY = os.getenv("SLACKBOT_API_KEY")
 
 # MongoDB Connection
@@ -72,14 +72,18 @@ def require_role(role):
 # Login endpoint (unchanged, used for JWT authentication)
 def login():
     data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
+    email = data.get('email')
 
-    # Hardcoded for demo; replace with DB check in production
-    if username == 'admin' and password == 'password123':
-        db = connect_to_mongo()
-        user = db.Users.find_one({'name': 'Admin User'})  # Example DB check
-        if user:
-            access_token = create_access_token(identity=str(user['_id']))
-            return jsonify({'access_token': access_token}), 200
-    return jsonify({'error': 'Invalid credentials'}), 401
+    # Validate that email is provided
+    if not email:
+        return jsonify({'error': 'Email is required'}), 400
+
+    # Check if the email exists in the database
+    db = connect_to_mongo()
+    user = db.Users.find_one({'email': email})
+    if not user:
+        return jsonify({'error': 'User with this email not found in database'}), 403
+
+    # Issue a Flask-JWT-Extended token with the user's _id
+    access_token = create_access_token(identity=str(user['_id']))
+    return jsonify({'access_token': access_token}), 200

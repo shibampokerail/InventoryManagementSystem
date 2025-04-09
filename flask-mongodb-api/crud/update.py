@@ -1,6 +1,6 @@
 from flask import jsonify, request
 from flask_jwt_extended import jwt_required
-from crud.utils import connect_to_mongo, require_role
+from crud.utils import api_key_or_jwt_required, connect_to_mongo, require_role
 from bson.objectid import ObjectId
 from datetime import datetime
 
@@ -23,7 +23,7 @@ def update_user(id):
     return jsonify({'message': 'User updated successfully'}), 200
 
 # Update a Vendor
-@jwt_required()
+@api_key_or_jwt_required()
 def update_vendor(id):
     db = connect_to_mongo()
     data = request.get_json()
@@ -41,7 +41,7 @@ def update_vendor(id):
     return jsonify({'message': 'Vendor updated successfully'}), 200
 
 # Update an Inventory Item
-@jwt_required()
+@api_key_or_jwt_required()
 def update_inventory_item(id):
     db = connect_to_mongo()
     data = request.get_json()
@@ -61,7 +61,7 @@ def update_inventory_item(id):
     return jsonify({'message': 'Inventory item updated successfully'}), 200
 
 # Update an Order
-@jwt_required()
+@api_key_or_jwt_required()
 def update_order(id):
     db = connect_to_mongo()
     data = request.get_json()
@@ -81,7 +81,7 @@ def update_order(id):
     return jsonify({'message': 'Order updated successfully'}), 200
 
 # Update a Vendor-Item
-@jwt_required()
+@api_key_or_jwt_required()
 def update_vendor_item(id):
     db = connect_to_mongo()
     data = request.get_json()
@@ -101,7 +101,7 @@ def update_vendor_item(id):
     return jsonify({'message': 'Vendor-item updated successfully'}), 200
 
 # Update a Notification
-@jwt_required()
+@api_key_or_jwt_required()
 def update_notification(id):
     db = connect_to_mongo()
     data = request.get_json()
@@ -119,7 +119,7 @@ def update_notification(id):
     return jsonify({'message': 'Notification updated successfully'}), 200
 
 # Update a Log
-@jwt_required()
+@api_key_or_jwt_required()
 def update_log(id):
     db = connect_to_mongo()
     data = request.get_json()
@@ -137,7 +137,7 @@ def update_log(id):
     return jsonify({'message': 'Log updated successfully'}), 200
 
 # Update an Inventory Usage Record
-@jwt_required()
+@api_key_or_jwt_required()
 def update_inventory_usage(id):
     db = connect_to_mongo()
     data = request.get_json()

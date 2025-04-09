@@ -1,8 +1,9 @@
 # Ignore the .env file (contains sensitive environment variables)
 .env
-
+flask-monggodb-api/.env
 # Python-specific ignores
 __pycache__/
+flask-monggodb-api/__pycache__/
 *.pyc
 *.pyo
 *.pyd

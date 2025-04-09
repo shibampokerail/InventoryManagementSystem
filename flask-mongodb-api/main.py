@@ -23,8 +23,7 @@ app = Flask(__name__)
 
 # Load environment variables
 load_dotenv()
-SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key')  # Change this in production!
-
+SECRET_KEY = os.getenv('SECRET_KEY') 
 # JWT Configuration
 app.config['JWT_SECRET_KEY'] = SECRET_KEY
 jwt = JWTManager(app)

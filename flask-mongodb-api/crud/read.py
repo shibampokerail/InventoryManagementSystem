@@ -1,10 +1,10 @@
 from flask import jsonify
 from flask_jwt_extended import jwt_required
-from crud.utils import connect_to_mongo
+from crud.utils import connect_to_mongo, api_key_or_jwt_required
 from bson.objectid import ObjectId
 
 # Get all users
-@jwt_required()
+@api_key_or_jwt_required()
 def get_users():
     db = connect_to_mongo()
     try:
@@ -17,7 +17,7 @@ def get_users():
         return jsonify({'error': 'Failed to fetch users'}), 500
 
 # Get all vendors
-@jwt_required()
+@api_key_or_jwt_required()
 def get_vendors():
     db = connect_to_mongo()
     try:
@@ -29,7 +29,7 @@ def get_vendors():
         return jsonify({'error': 'Failed to fetch vendors'}), 500
 
 # Get all orders
-@jwt_required()
+@api_key_or_jwt_required()
 def get_orders():
     db = connect_to_mongo()
     try:
@@ -43,7 +43,7 @@ def get_orders():
         return jsonify({'error': 'Failed to fetch orders'}), 500
 
 # Get all vendor-items
-@jwt_required()
+@api_key_or_jwt_required()
 def get_vendor_items():
     db = connect_to_mongo()
     try:
@@ -57,7 +57,7 @@ def get_vendor_items():
         return jsonify({'error': 'Failed to fetch vendor-items'}), 500
 
 # Get all notifications
-@jwt_required()
+@api_key_or_jwt_required()
 def get_notifications():
     db = connect_to_mongo()
     try:
@@ -69,7 +69,7 @@ def get_notifications():
         return jsonify({'error': 'Failed to fetch notifications'}), 500
 
 # Get all logs
-@jwt_required()
+@api_key_or_jwt_required()
 def get_logs():
     db = connect_to_mongo()
     try:
@@ -84,7 +84,7 @@ def get_logs():
         return jsonify({'error': 'Failed to fetch logs'}), 500
 
 # Get all inventory usage
-@jwt_required()
+@api_key_or_jwt_required()
 def get_inventory_usage():
     db = connect_to_mongo()
     try:
@@ -98,7 +98,7 @@ def get_inventory_usage():
         return jsonify({'error': 'Failed to fetch inventory usage'}), 500
 
 # Get all inventory items
-@jwt_required()
+@api_key_or_jwt_required()
 def get_inventory_items():
     db = connect_to_mongo()
     try:

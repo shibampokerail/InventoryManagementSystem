@@ -1,6 +1,6 @@
 from flask import jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from crud.utils import connect_to_mongo, require_role
+from crud.utils import connect_to_mongo, require_role, api_key_or_jwt_required
 from bson.objectid import ObjectId
 from datetime import datetime
 
@@ -24,7 +24,7 @@ def create_user():
     return jsonify(new_user), 201
 
 # Create a Vendor
-@jwt_required()
+@api_key_or_jwt_required()
 def create_vendor():
     db = connect_to_mongo()
     data = request.get_json()
@@ -41,7 +41,7 @@ def create_vendor():
     return jsonify(new_vendor), 201
 
 # Create an Inventory Item
-@jwt_required()
+@api_key_or_jwt_required()
 def create_inventory_item():
     db = connect_to_mongo()
     data = request.get_json()
@@ -59,7 +59,7 @@ def create_inventory_item():
     return jsonify(new_item), 201
 
 # Create an Order
-@jwt_required()
+@api_key_or_jwt_required()
 def create_order():
     db = connect_to_mongo()
     data = request.get_json()
@@ -80,7 +80,7 @@ def create_order():
     return jsonify(new_order), 201
 
 # Create a Vendor-Item
-@jwt_required()
+@api_key_or_jwt_required()
 def create_vendor_item():
     db = connect_to_mongo()
     data = request.get_json()
@@ -100,7 +100,7 @@ def create_vendor_item():
     return jsonify(new_vendor_item), 201
 
 # Create a Notification
-@jwt_required()
+@api_key_or_jwt_required()
 def create_notification():
     db = connect_to_mongo()
     data = request.get_json()
@@ -116,7 +116,7 @@ def create_notification():
     return jsonify(new_notification), 201
 
 # Create a Log
-@jwt_required()
+@api_key_or_jwt_required()
 def create_log():
     db = connect_to_mongo()
     data = request.get_json()
@@ -137,7 +137,7 @@ def create_log():
     return jsonify(new_log), 201
 
 # Create an Inventory Usage Record
-@jwt_required()
+@api_key_or_jwt_required()
 def create_inventory_usage():
     db = connect_to_mongo()
     data = request.get_json()
