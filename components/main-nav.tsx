@@ -1,41 +1,43 @@
+"use client"
+
 import type React from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { usePathname } from "next/navigation"
 
 export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElement>) {
+  const pathname = usePathname()
+
   return (
     <nav className={cn("flex items-center space-x-4 lg:space-x-6", className)} {...props}>
       <Link
         href="/"
-        className="text-sm font-medium text-purple-900 transition-colors hover:text-purple-700 dark:text-purple-50 dark:hover:text-purple-300"
+        className={cn(
+          "text-sm font-medium transition-colors hover:text-purple-700 dark:hover:text-purple-300",
+          pathname === "/" ? "text-purple-900 dark:text-purple-50" : "text-purple-600 dark:text-purple-400",
+        )}
       >
         Dashboard
       </Link>
       <Link
-        href="/"
-        className="text-sm font-medium text-purple-600 transition-colors hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-50"
+        href="/users"
+        className={cn(
+          "text-sm font-medium transition-colors hover:text-purple-700 dark:hover:text-purple-300",
+          pathname === "/users" ? "text-purple-900 dark:text-purple-50" : "text-purple-600 dark:text-purple-400",
+        )}
       >
-        Inventory
+        Users
       </Link>
       <Link
-        href="/"
-        className="text-sm font-medium text-purple-600 transition-colors hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-50"
+        href="/slack-bots"
+        className={cn(
+          "text-sm font-medium transition-colors hover:text-purple-700 dark:hover:text-purple-300",
+          pathname === "/slack-bots" ? "text-purple-900 dark:text-purple-50" : "text-purple-600 dark:text-purple-400",
+        )}
       >
-        Check Out
+        Slack Bots
       </Link>
-      <Link
-        href="/"
-        className="text-sm font-medium text-purple-600 transition-colors hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-50"
-      >
-        Reports
-      </Link>
-      <Link
-        href="/"
-        className="text-sm font-medium text-purple-600 transition-colors hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-50"
-      >
-        Settings
-      </Link>
+      
     </nav>
   )
 }
-

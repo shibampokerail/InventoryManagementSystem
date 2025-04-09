@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useRouter } from "next/navigation"
+import { User, Settings, Bell } from "lucide-react"
 
 export function UserNav() {
   const router = useRouter()
@@ -44,9 +45,27 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem className="text-purple-700 dark:text-purple-300">Profile</DropdownMenuItem>
-          <DropdownMenuItem className="text-purple-700 dark:text-purple-300">Settings</DropdownMenuItem>
-          <DropdownMenuItem className="text-purple-700 dark:text-purple-300">Notifications</DropdownMenuItem>
+          <DropdownMenuItem
+            className="text-purple-700 dark:text-purple-300 cursor-pointer"
+            onClick={() => router.push("/profile")}
+          >
+            <User className="mr-2 h-4 w-4" />
+            Profile
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="text-purple-700 dark:text-purple-300 cursor-pointer"
+            onClick={() => router.push("/settings")}
+          >
+            <Settings className="mr-2 h-4 w-4" />
+            Settings
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="text-purple-700 dark:text-purple-300 cursor-pointer"
+            onClick={() => router.push("/notifications")}
+          >
+            <Bell className="mr-2 h-4 w-4" />
+            Notifications
+          </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem className="text-purple-700 dark:text-purple-300 cursor-pointer" onClick={handleLogout}>
@@ -56,4 +75,3 @@ export function UserNav() {
     </DropdownMenu>
   )
 }
-
