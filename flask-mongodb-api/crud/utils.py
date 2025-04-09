@@ -9,8 +9,9 @@ from datetime import datetime
 
 # Load environment variables
 load_dotenv()
-MONGO_URI = os.getenv('MONGO_URI', 'mongodb://localhost:27017')
+MONGO_URI = os.getenv('MONGO_URI')
 DB_NAME = 'union_involvement'
+SLACKBOT_API_KEY = os.getenv("SLACKBOT_API_KEY")
 
 # MongoDB Connection
 client = None
@@ -28,12 +29,37 @@ def connect_to_mongo():
             raise
     return db
 
-# Role-based access decorator
+# NEW: Decorator to allow API key or JWT authentication
+def api_key_or_jwt_required():
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            # Check for API key in headers
+            api_key = request.headers.get("X-API-Key")
+            if api_key and api_key == SLACKBOT_API_KEY:
+                # API key is valid, bypass JWT check
+                return f(*args, **kwargs)
+
+            # If no API key, fall back to JWT authentication
+            @jwt_required()
+            def jwt_protected():
+                return f(*args, **kwargs)
+            return jwt_protected()
+        return decorated_function
+    return decorator
+
+# MODIFIED: Update role-based access decorator to work with API key
 def require_role(role):
     def decorator(f):
         @wraps(f)
-        @jwt_required()
+        @api_key_or_jwt_required()  # CHANGED: Use new decorator instead of @jwt_required()
         def wrapped(*args, **kwargs):
+            # Check if the request is using an API key
+            if request.headers.get("X-API-Key") == SLACKBOT_API_KEY:
+                # API key bypasses role check (Slackbot has full access)
+                return f(*args, **kwargs)
+
+            # If using JWT, perform role check
             user_id = get_jwt_identity()
             db = connect_to_mongo()
             user = db.Users.find_one({'_id': ObjectId(user_id)})
@@ -43,7 +69,7 @@ def require_role(role):
         return wrapped
     return decorator
 
-# Login endpoint
+# Login endpoint (unchanged, used for JWT authentication)
 def login():
     data = request.get_json()
     username = data.get('username')
