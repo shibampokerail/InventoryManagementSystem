@@ -1,7 +1,7 @@
 from flask import jsonify, request
 from pymongo import MongoClient
 from bson.objectid import ObjectId
-from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
+from flask_jwt_extended import get_jwt, jwt_required, create_access_token, get_jwt_identity
 import os
 from dotenv import load_dotenv
 from functools import wraps
@@ -87,3 +87,26 @@ def login():
     # Issue a Flask-JWT-Extended token with the user's _id
     access_token = create_access_token(identity=str(user['_id']))
     return jsonify({'access_token': access_token}), 200
+
+# Logout endpoint
+@api_key_or_jwt_required()
+def logout():
+    jwt_data = get_jwt()
+    jti = jwt_data.get("jti")
+    db = connect_to_mongo()
+    db.RevokedTokens.insert_one({"jti": jti})
+    return jsonify({"message": "Successfully logged out"}), 200
+
+# Stats endpoint
+@api_key_or_jwt_required()
+def get_stats():
+    db = connect_to_mongo()
+    total_items = db.InventoryItems.count_documents({})
+    low_stock = db.InventoryItems.count_documents({"quantity": {"$lt": 10}})
+    items_checked_out = sum(item.get("checked_out", 0) for item in db.InventoryItems.find())
+
+    return {
+        "total_items": total_items,
+        "low_stock": low_stock,
+        "items_checked_out": items_checked_out,
+    }

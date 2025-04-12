@@ -8,7 +8,8 @@ from crud.create import (
 )
 from crud.read import (
     get_users, get_vendors, get_orders, get_vendor_items,
-    get_notifications, get_logs, get_inventory_usage, get_inventory_items
+    get_notifications, get_logs, get_inventory_usage, get_inventory_items, get_user,
+    get_vendor, get_items_by_vendor, get_inventory_item, get_vendor_item, get_usage_by_item
 )
 from crud.update import (
     update_user, update_vendor, update_inventory_item, update_order,
@@ -18,7 +19,7 @@ from crud.delete import (
     delete_user, delete_vendor, delete_inventory_item, delete_order,
     delete_vendor_item, delete_notification, delete_log, delete_inventory_usage
 )
-from crud.utils import login
+from crud.utils import login, logout, get_stats
 app = Flask(__name__)
 
 # Load environment variables
@@ -29,20 +30,29 @@ app.config['JWT_SECRET_KEY'] = SECRET_KEY
 jwt = JWTManager(app)
 
 app.route('/api/login', methods=['POST'])(login)
+
+app.route('/api/logout', methods=['POST'])(logout)  # Added logout
+# Stats Route
+app.route('/api/stats', methods=['GET'])(get_stats)  # Added stats
+
 # Routes for Users
 app.route('/api/users', methods=['POST'])(create_user)
 app.route('/api/users', methods=['GET'])(get_users)
 app.route('/api/users/<id>', methods=['PUT'])(update_user)
 app.route('/api/users/<id>', methods=['DELETE'])(delete_user)
+app.route('/api/users/<id>', methods=['GET'])(get_user)  # Added
 
 # Routes for Vendors
 app.route('/api/vendors', methods=['POST'])(create_vendor)
 app.route('/api/vendors', methods=['GET'])(get_vendors)
 app.route('/api/vendors/<id>', methods=['PUT'])(update_vendor)
 app.route('/api/vendors/<id>', methods=['DELETE'])(delete_vendor)
+app.route('/api/vendors/<id>', methods=['GET'])(get_vendor)  # Added
+app.route('/api/vendors/<id>/items', methods=['GET'])(get_items_by_vendor)  # Added
 
 # Routes for Inventory Items
 app.route('/api/inventory-items', methods=['POST'])(create_inventory_item)
+app.route('/api/inventory-items/<id>', methods=['GET'])(get_inventory_item)  # Added
 app.route('/api/inventory-items', methods=['GET'])(get_inventory_items)
 app.route('/api/inventory-items/<id>', methods=['PUT'])(update_inventory_item)
 app.route('/api/inventory-items/<id>', methods=['DELETE'])(delete_inventory_item)
@@ -58,6 +68,7 @@ app.route('/api/vendor-items', methods=['POST'])(create_vendor_item)
 app.route('/api/vendor-items', methods=['GET'])(get_vendor_items)
 app.route('/api/vendor-items/<id>', methods=['PUT'])(update_vendor_item)
 app.route('/api/vendor-items/<id>', methods=['DELETE'])(delete_vendor_item)
+app.route('/api/vendor-items/<id>', methods=['GET'])(get_vendor_item)  # Added
 
 # Routes for Notifications
 app.route('/api/notifications', methods=['POST'])(create_notification)
@@ -76,6 +87,7 @@ app.route('/api/inventory-usage', methods=['POST'])(create_inventory_usage)
 app.route('/api/inventory-usage', methods=['GET'])(get_inventory_usage)
 app.route('/api/inventory-usage/<id>', methods=['PUT'])(update_inventory_usage)
 app.route('/api/inventory-usage/<id>', methods=['DELETE'])(delete_inventory_usage)
+app.route('/api/inventory-usage/item/<item_id>', methods=['GET'])(get_usage_by_item)  # Added
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5001) 

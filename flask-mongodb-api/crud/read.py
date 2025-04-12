@@ -1,8 +1,8 @@
-from flask import jsonify
+from flask import jsonify, request
 from flask_jwt_extended import jwt_required
 from crud.utils import connect_to_mongo, api_key_or_jwt_required
 from bson.objectid import ObjectId
-
+from bson.errors import InvalidId 
 # Get all users
 @api_key_or_jwt_required()
 def get_users():
@@ -16,6 +16,29 @@ def get_users():
     except Exception as e:
         return jsonify({'error': 'Failed to fetch users'}), 500
 
+@api_key_or_jwt_required()
+def get_user(identifier):
+    db = connect_to_mongo()
+    try:
+        # Try to find user by ID first
+        try:
+            user = db.Users.find_one({'_id': ObjectId(identifier)})
+        except InvalidId:
+            user = None  # Invalid ObjectId, proceed to email lookup
+            
+        # If no user found by ID, try by email
+        if not user:
+            user = db.Users.find_one({'email': identifier})
+        
+        if user:
+            user['_id'] = str(user['_id'])  # Convert ObjectId to string for JSON serialization
+            return jsonify(user), 200
+            
+        return jsonify({'error': 'User not found'}), 404
+    except Exception as e:
+        # Catch any other unexpected errors
+        return jsonify({'error': 'An unexpected error occurred', 'details': str(e)}), 500
+
 # Get all vendors
 @api_key_or_jwt_required()
 def get_vendors():
@@ -27,6 +50,18 @@ def get_vendors():
         return jsonify(vendors)
     except Exception as e:
         return jsonify({'error': 'Failed to fetch vendors'}), 500
+    
+@api_key_or_jwt_required()
+def get_vendor(vendor_id):
+    db = connect_to_mongo()
+    try:
+        vendor = db.Vendors.find_one({'_id': ObjectId(vendor_id)})
+        if vendor:
+            vendor['_id'] = str(vendor['_id'])
+            return jsonify(vendor), 200
+        return jsonify({'error': 'Vendor not found'}), 404
+    except Exleption as e:
+        return jsonify({'error': 'Failed to fetch vendor'}), 500
 
 # Get all orders
 @api_key_or_jwt_required()
@@ -55,6 +90,17 @@ def get_vendor_items():
         return jsonify(vendor_items)
     except Exception as e:
         return jsonify({'error': 'Failed to fetch vendor-items'}), 500
+
+@api_key_or_jwt_required()
+def get_items_by_vendor(vendor_id):
+    db = connect_to_mongo()
+    vendor_items = list(db.VendorItems.find({'vendorId': ObjectId(vendor_id)}))
+    item_ids = [ObjectId(item['itemId']) for item in vendor_items]
+    items = list(db.InventoryItems.find({'_id': {'$in': item_ids}}))
+    for item in items:
+        item['_id'] = str(item['_id'])
+    return jsonify(items), 200
+
 
 # Get all notifications
 @api_key_or_jwt_required()
@@ -101,10 +147,46 @@ def get_inventory_usage():
 @api_key_or_jwt_required()
 def get_inventory_items():
     db = connect_to_mongo()
+    query = {}
     try:
-        items = list(db.InventoryItems.find())
+        if 'name' in request.args:
+            query['name'] = {'$regex': request.args['name'], '$options': 'i'}
+        items = list(db.InventoryItems.find(query))
         for item in items:
             item['_id'] = str(item['_id'])
         return jsonify(items)
     except Exception as e:
         return jsonify({'error': 'Failed to fetch inventory items'}), 500
+
+# Read a single Inventory Item by ID
+@api_key_or_jwt_required()
+def get_inventory_item(item_id):
+    db = connect_to_mongo()
+    item = db.InventoryItems.find_one({'_id': ObjectId(item_id)})
+    if item:
+        item['_id'] = str(item['_id'])
+        return jsonify(item), 200
+    return jsonify({'error': 'Item not found'}), 404
+
+# Read a single Vendor Item by ID
+@api_key_or_jwt_required()
+def get_vendor_item(vendor_item_id):
+    db = connect_to_mongo()
+    vendor_item = db.VendorItems.find_one({'_id': ObjectId(vendor_item_id)})
+    if vendor_item:
+        vendor_item['_id'] = str(vendor_item['_id'])
+        vendor_item['vendorId'] = str(vendor_item['vendorId'])
+        vendor_item['itemId'] = str(vendor_item['itemId'])
+        return jsonify(vendor_item), 200
+    return jsonify({'error': 'Vendor Item not found'}), 404
+
+# Get Inventory Usage by Item
+@api_key_or_jwt_required()
+def get_usage_by_item(item_id):
+    db = connect_to_mongo()
+    usages = list(db.InventoryUsage.find({'itemId': ObjectId(item_id)}))
+    for usage in usages:
+        usage['_id'] = str(usage['_id'])
+        usage['itemId'] = str(usage['itemId'])
+        usage['userId'] = str(usage['userId'])
+    return jsonify(usages), 200
