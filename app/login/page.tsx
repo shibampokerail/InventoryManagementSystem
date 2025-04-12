@@ -66,6 +66,7 @@ export default function LoginPage() {
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center text-purple-900 dark:text-purple-50">
               Sign in
+              <a href="/api/auth/login">Login</a>
             </CardTitle>
             <CardDescription className="text-center text-purple-700 dark:text-purple-300">
               Enter your credentials to access your account

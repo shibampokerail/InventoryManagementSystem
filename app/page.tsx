@@ -62,7 +62,7 @@ export default function InventoryDashboard() {
       </div>
       <div className="flex-1 space-y-4 p-8 pt-6 bg-purple-50/50 dark:bg-purple-950/50">
         <div className="flex items-center justify-between space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight text-purple-900 dark:text-purple-50">Inventory Dashboard</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-purple-900 dark:text-purple-50">Inventory Dashboard <a href="/api/auth/logout">Logout</a></h2>
           <div className="flex items-center space-x-2">
             <Dialog>
               <DialogTrigger asChild>

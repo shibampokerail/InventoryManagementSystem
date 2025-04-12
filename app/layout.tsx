@@ -5,7 +5,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { InventoryProvider } from "@/context/inventory-context"
-
+import { UserProvider } from '@auth0/nextjs-auth0/client';
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
@@ -20,6 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <UserProvider>
       <body className={inter.className} suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           <InventoryProvider>
@@ -28,6 +29,7 @@ export default function RootLayout({
           </InventoryProvider>
         </ThemeProvider>
       </body>
+      </UserProvider>
     </html>
   )
 }
