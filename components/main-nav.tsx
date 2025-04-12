@@ -37,7 +37,35 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
       >
         Slack Bots
       </Link>
-      
+      <Link
+        href="/profile"
+        className={cn(
+          "text-sm font-medium transition-colors hover:text-purple-700 dark:hover:text-purple-300",
+          pathname === "/profile" ? "text-purple-900 dark:text-purple-50" : "text-purple-600 dark:text-purple-400",
+        )}
+      >
+        Profile
+      </Link>
+      <Link
+        href="/settings"
+        className={cn(
+          "text-sm font-medium transition-colors hover:text-purple-700 dark:hover:text-purple-300",
+          pathname === "/settings" ? "text-purple-900 dark:text-purple-50" : "text-purple-600 dark:text-purple-400",
+        )}
+      >
+        Settings
+      </Link>
+      <Link
+        href="/notifications"
+        className={cn(
+          "text-sm font-medium transition-colors hover:text-purple-700 dark:hover:text-purple-300",
+          pathname === "/notifications"
+            ? "text-purple-900 dark:text-purple-50"
+            : "text-purple-600 dark:text-purple-400",
+        )}
+      >
+        Notifications
+      </Link>
     </nav>
   )
 }

@@ -17,7 +17,7 @@ import { useInventory } from "@/context/inventory-context"
 import { useToast } from "@/components/ui/use-toast"
 
 export function CheckoutForm() {
-  const { inventoryItems, checkoutItem, returnItem } = useInventory()
+  const { inventoryItems, checkoutItem, returnItem, checkoutHistory } = useInventory()
   const { toast } = useToast()
 
   const [selectedItems, setSelectedItems] = useState<Array<{ id: string; name: string; quantity: number }>>([])
@@ -29,6 +29,8 @@ export function CheckoutForm() {
   const [eventName, setEventName] = useState("")
   const [department, setDepartment] = useState("")
   const [location, setLocation] = useState("")
+  const [userName, setUserName] = useState("")
+  const [email, setEmail] = useState("")
 
   // Filter to only show available items (quantity > 0)
   const availableItems = inventoryItems.filter((item) => item.quantity > 0)
@@ -74,7 +76,12 @@ export function CheckoutForm() {
 
     // Process each selected item
     selectedItems.forEach((item) => {
-      checkoutItem(item.id, item.quantity, eventName)
+      checkoutItem(item.id, item.quantity, eventName, {
+        requestedBy: userName || "Admin User",
+        department,
+        returnDate: returnDate ? format(returnDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+        location,
+      })
     })
 
     // Show success message
@@ -89,66 +96,32 @@ export function CheckoutForm() {
     setEventName("")
     setDepartment("")
     setLocation("")
+    setActiveTab("history") // Switch to history tab to show the new checkout
   }
 
   const handleReturnItems = (checkoutId: string) => {
-    // In a real app, you would get the actual items from the checkout record
-    // For this demo, we'll simulate returning a projector
-    const projectorId = "INV005"
-    returnItem(projectorId, 1)
+    // Find the checkout record
+    const checkout = checkoutHistory.find((c) => c.id === checkoutId)
 
-    toast({
-      title: "Items Returned",
-      description: "The items have been successfully returned to inventory.",
-      variant: "success",
-    })
+    if (checkout) {
+      // In a real app, you would get the actual items from the checkout record
+      // For this demo, we'll return the first item in the checkout
+      if (checkout.items.length > 0) {
+        const firstItem = checkout.items[0]
+        const itemToReturn = inventoryItems.find((item) => item.name === firstItem.name)
+
+        if (itemToReturn) {
+          returnItem(itemToReturn.id, firstItem.quantity)
+
+          toast({
+            title: "Items Returned",
+            description: "The items have been successfully returned to inventory.",
+            variant: "success",
+          })
+        }
+      }
+    }
   }
-
-  // Sample data for recent checkouts
-  const recentCheckouts = [
-    {
-      id: "CO-2023-042",
-      event: "Student Government Meeting",
-      requestedBy: "Sarah Johnson",
-      department: "Student Affairs",
-      checkoutDate: "2023-03-20",
-      returnDate: "2023-03-22",
-      status: "Active",
-      items: [
-        { name: "Folding Tables", quantity: 5 },
-        { name: "Chairs", quantity: 20 },
-        { name: "Microphones", quantity: 2 },
-      ],
-    },
-    {
-      id: "CO-2023-041",
-      event: "Career Fair",
-      requestedBy: "Michael Chen",
-      department: "Career Services",
-      checkoutDate: "2023-03-18",
-      returnDate: "2023-03-19",
-      status: "Returned",
-      items: [
-        { name: "Folding Tables", quantity: 15 },
-        { name: "Chairs", quantity: 60 },
-        { name: "Tablecloths", quantity: 15 },
-      ],
-    },
-    {
-      id: "CO-2023-040",
-      event: "Faculty Workshop",
-      requestedBy: "Aisha Patel",
-      department: "Academic Affairs",
-      checkoutDate: "2023-03-15",
-      returnDate: "2023-03-15",
-      status: "Returned",
-      items: [
-        { name: "Projectors", quantity: 1 },
-        { name: "Whiteboards", quantity: 2 },
-        { name: "Chairs", quantity: 15 },
-      ],
-    },
-  ]
 
   return (
     <div className="space-y-6">
@@ -192,7 +165,13 @@ export function CheckoutForm() {
                   <Label htmlFor="name" className="text-purple-900 dark:text-purple-50">
                     Your Name
                   </Label>
-                  <Input id="name" placeholder="Enter your name" className="border-purple-200 dark:border-purple-800" />
+                  <Input
+                    id="name"
+                    placeholder="Enter your name"
+                    className="border-purple-200 dark:border-purple-800"
+                    value={userName}
+                    onChange={(e) => setUserName(e.target.value)}
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -204,6 +183,8 @@ export function CheckoutForm() {
                     type="email"
                     placeholder="your.email@truman.edu"
                     className="border-purple-200 dark:border-purple-800"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
 
@@ -401,67 +382,73 @@ export function CheckoutForm() {
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              {recentCheckouts.map((checkout) => (
-                <div key={checkout.id} className="rounded-lg border border-purple-200 p-4 dark:border-purple-800">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="text-lg font-medium text-purple-900 dark:text-purple-50">{checkout.event}</h3>
-                      <p className="text-sm text-purple-700 dark:text-purple-300">
-                        {checkout.requestedBy} • {checkout.department}
-                      </p>
-                    </div>
-                    <Badge
-                      className={
-                        checkout.status === "Active"
-                          ? "bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-100"
-                          : "bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900 dark:text-green-100"
-                      }
-                    >
-                      {checkout.status}
-                    </Badge>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <p className="text-sm font-medium text-purple-900 dark:text-purple-50">Checkout Date</p>
-                      <p className="text-sm text-purple-700 dark:text-purple-300">{checkout.checkoutDate}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-purple-900 dark:text-purple-50">Return Date</p>
-                      <p className="text-sm text-purple-700 dark:text-purple-300">{checkout.returnDate}</p>
-                    </div>
-                  </div>
-
-                  <div className="mb-4">
-                    <p className="text-sm font-medium text-purple-900 dark:text-purple-50 mb-2">Items</p>
-                    <ul className="space-y-1">
-                      {checkout.items.map((item, index) => (
-                        <li key={index} className="text-sm text-purple-700 dark:text-purple-300">
-                          {item.quantity} × {item.name}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="flex justify-end">
-                    {checkout.status === "Active" ? (
-                      <Button
-                        variant="outline"
-                        className="border-purple-200 text-purple-700 hover:bg-purple-100 dark:border-purple-800 dark:text-purple-300 dark:hover:bg-purple-900"
-                        onClick={() => handleReturnItems(checkout.id)}
-                      >
-                        <RotateCcw className="mr-2 h-4 w-4" />
-                        Return Items
-                      </Button>
-                    ) : (
-                      <Button variant="outline" disabled className="opacity-50 cursor-not-allowed">
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                        Returned
-                      </Button>
-                    )}
-                  </div>
+              {checkoutHistory.length === 0 ? (
+                <div className="text-center py-8 text-purple-700 dark:text-purple-300">
+                  No checkout history found. Start by checking out some items.
                 </div>
-              ))}
+              ) : (
+                checkoutHistory.map((checkout) => (
+                  <div key={checkout.id} className="rounded-lg border border-purple-200 p-4 dark:border-purple-800">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-lg font-medium text-purple-900 dark:text-purple-50">{checkout.event}</h3>
+                        <p className="text-sm text-purple-700 dark:text-purple-300">
+                          {checkout.requestedBy} • {checkout.department}
+                        </p>
+                      </div>
+                      <Badge
+                        className={
+                          checkout.status === "Active"
+                            ? "bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-100"
+                            : "bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900 dark:text-green-100"
+                        }
+                      >
+                        {checkout.status}
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <p className="text-sm font-medium text-purple-900 dark:text-purple-50">Checkout Date</p>
+                        <p className="text-sm text-purple-700 dark:text-purple-300">{checkout.checkoutDate}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-purple-900 dark:text-purple-50">Return Date</p>
+                        <p className="text-sm text-purple-700 dark:text-purple-300">{checkout.returnDate}</p>
+                      </div>
+                    </div>
+
+                    <div className="mb-4">
+                      <p className="text-sm font-medium text-purple-900 dark:text-purple-50 mb-2">Items</p>
+                      <ul className="space-y-1">
+                        {checkout.items.map((item, index) => (
+                          <li key={index} className="text-sm text-purple-700 dark:text-purple-300">
+                            {item.quantity} × {item.name}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="flex justify-end">
+                      {checkout.status === "Active" ? (
+                        <Button
+                          variant="outline"
+                          className="border-purple-200 text-purple-700 hover:bg-purple-100 dark:border-purple-800 dark:text-purple-300 dark:hover:bg-purple-900"
+                          onClick={() => handleReturnItems(checkout.id)}
+                        >
+                          <RotateCcw className="mr-2 h-4 w-4" />
+                          Return Items
+                        </Button>
+                      ) : (
+                        <Button variant="outline" disabled className="opacity-50 cursor-not-allowed">
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                          Returned
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>

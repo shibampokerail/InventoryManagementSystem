@@ -29,11 +29,35 @@ export type ActivityItem = {
   timestamp: string
 }
 
+// Add a new type for checkout history
+export type CheckoutRecord = {
+  id: string
+  event: string
+  requestedBy: string
+  department: string
+  checkoutDate: string
+  returnDate: string
+  status: "Active" | "Returned"
+  items: Array<{ name: string; quantity: number }>
+}
+
+// Update the context type to include checkout history
 type InventoryContextType = {
   inventoryItems: InventoryItem[]
   activities: ActivityItem[]
+  checkoutHistory: CheckoutRecord[]
   addInventoryItem: (item: Omit<InventoryItem, "id" | "status">) => string
-  checkoutItem: (itemId: string, quantity: number, eventName: string) => void
+  checkoutItem: (
+    itemId: string,
+    quantity: number,
+    eventName: string,
+    checkoutDetails?: {
+      requestedBy: string
+      department: string
+      returnDate: string
+      location: string
+    },
+  ) => void
   returnItem: (itemId: string, quantity: number) => void
   updateItemCount: (itemId: string, quantity: number) => void
 }
@@ -165,10 +189,57 @@ const initialActivities: ActivityItem[] = [
   },
 ]
 
-// Create the provider component
+// Add initial checkout history data
+const initialCheckoutHistory: CheckoutRecord[] = [
+  {
+    id: "CO-2023-042",
+    event: "Student Government Meeting",
+    requestedBy: "Sarah Johnson",
+    department: "Student Affairs",
+    checkoutDate: "2023-03-20",
+    returnDate: "2023-03-22",
+    status: "Active",
+    items: [
+      { name: "Folding Tables", quantity: 5 },
+      { name: "Chairs", quantity: 20 },
+      { name: "Microphones", quantity: 2 },
+    ],
+  },
+  {
+    id: "CO-2023-041",
+    event: "Career Fair",
+    requestedBy: "Michael Chen",
+    department: "Career Services",
+    checkoutDate: "2023-03-18",
+    returnDate: "2023-03-19",
+    status: "Returned",
+    items: [
+      { name: "Folding Tables", quantity: 15 },
+      { name: "Chairs", quantity: 60 },
+      { name: "Tablecloths", quantity: 15 },
+    ],
+  },
+  {
+    id: "CO-2023-040",
+    event: "Faculty Workshop",
+    requestedBy: "Aisha Patel",
+    department: "Academic Affairs",
+    checkoutDate: "2023-03-15",
+    returnDate: "2023-03-15",
+    status: "Returned",
+    items: [
+      { name: "Projectors", quantity: 1 },
+      { name: "Whiteboards", quantity: 2 },
+      { name: "Chairs", quantity: 15 },
+    ],
+  },
+]
+
+// Update the provider component to include checkout history
 export function InventoryProvider({ children }: { children: React.ReactNode }) {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(initialInventoryItems)
   const [activities, setActivities] = useState<ActivityItem[]>(initialActivities)
+  const [checkoutHistory, setCheckoutHistory] = useState<CheckoutRecord[]>(initialCheckoutHistory)
 
   // Function to add a new inventory item
   const addInventoryItem = (item: Omit<InventoryItem, "id" | "status">) => {
@@ -210,7 +281,17 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
   }
 
   // Function to checkout an item
-  const checkoutItem = (itemId: string, quantity: number, eventName: string) => {
+  const checkoutItem = (
+    itemId: string,
+    quantity: number,
+    eventName: string,
+    checkoutDetails?: {
+      requestedBy: string
+      department: string
+      returnDate: string
+      location: string
+    },
+  ) => {
     setInventoryItems((prev) =>
       prev.map((item) => {
         if (item.id === itemId) {
@@ -253,6 +334,54 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     }
 
     setActivities((prev) => [newActivity, ...prev])
+
+    // Add to checkout history if this is a new checkout
+    if (checkoutDetails) {
+      const today = new Date().toISOString().split("T")[0]
+      const newCheckoutId = `CO-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000)
+        .toString()
+        .padStart(3, "0")}`
+
+      // Check if there's an existing checkout for this event
+      const existingCheckoutIndex = checkoutHistory.findIndex(
+        (checkout) => checkout.event === eventName && checkout.status === "Active",
+      )
+
+      if (existingCheckoutIndex >= 0) {
+        // Update existing checkout
+        setCheckoutHistory((prev) => {
+          const updated = [...prev]
+          const existingItem = updated[existingCheckoutIndex].items.findIndex((item) => item.name === itemName)
+
+          if (existingItem >= 0) {
+            // Update quantity of existing item
+            updated[existingCheckoutIndex].items[existingItem].quantity += quantity
+          } else {
+            // Add new item to existing checkout
+            updated[existingCheckoutIndex].items.push({
+              name: itemName,
+              quantity,
+            })
+          }
+
+          return updated
+        })
+      } else {
+        // Create new checkout record
+        const newCheckout: CheckoutRecord = {
+          id: newCheckoutId,
+          event: eventName,
+          requestedBy: checkoutDetails.requestedBy || "Admin User",
+          department: checkoutDetails.department || "U&I Services",
+          checkoutDate: today,
+          returnDate: checkoutDetails.returnDate || today,
+          status: "Active",
+          items: [{ name: itemName, quantity }],
+        }
+
+        setCheckoutHistory((prev) => [newCheckout, ...prev])
+      }
+    }
   }
 
   // Function to return an item
@@ -343,6 +472,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       value={{
         inventoryItems,
         activities,
+        checkoutHistory,
         addInventoryItem,
         checkoutItem,
         returnItem,

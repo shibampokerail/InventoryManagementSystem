@@ -569,4 +569,3 @@ export function ReportsView() {
     </div>
   )
 }
-

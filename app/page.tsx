@@ -21,16 +21,29 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { AddItemForm } from "@/components/add-item-form"
-import { useInventory } from "@/context/inventory-context"
+import { useInventory, type CheckoutRecord } from "@/context/inventory-context"
+import { useRouter } from "next/navigation"
 
 export default function InventoryDashboard() {
   // Access inventory context to ensure it's available
-  const { inventoryItems } = useInventory()
+  const { inventoryItems, checkoutHistory } = useInventory()
+  const router = useRouter()
 
   // Count items for dashboard stats
   const totalItems = inventoryItems.reduce((sum, item) => sum + item.quantity, 0)
-  const lowStockItems = inventoryItems.filter((item) => item.status === "Low Stock").length
-  const checkedOutItems = inventoryItems.filter((item) => item.status === "Partially Checked Out").length
+  const lowStockItems = inventoryItems.filter((item) => item.quantity < 20).length
+  const checkedOutItems = inventoryItems.filter((item) => item.status.includes("Checked Out")).length
+
+  // Count upcoming returns (due within 48 hours)
+  const currentDate = new Date()
+  const futureDate = new Date(currentDate)
+  futureDate.setHours(currentDate.getHours() + 48)
+
+  const upcomingReturns = checkoutHistory.filter((checkout: CheckoutRecord) => {
+    if (checkout.status !== "Active") return false
+    const returnDate = new Date(checkout.returnDate)
+    return returnDate <= futureDate && returnDate >= currentDate
+  }).length
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -87,7 +100,10 @@ export default function InventoryDashboard() {
           </TabsList>
           <TabsContent value="overview" className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Card className="border-purple-200 dark:border-purple-800">
+              <Card
+                className="border-purple-200 dark:border-purple-800 cursor-pointer hover:border-purple-400 dark:hover:border-purple-600 transition-colors"
+                onClick={() => router.push("/total-items")}
+              >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-purple-900 dark:text-purple-100">
                     Total Items
@@ -101,7 +117,10 @@ export default function InventoryDashboard() {
                   </p>
                 </CardContent>
               </Card>
-              <Card className="border-purple-200 dark:border-purple-800">
+              <Card
+                className="border-purple-200 dark:border-purple-800 cursor-pointer hover:border-purple-400 dark:hover:border-purple-600 transition-colors"
+                onClick={() => router.push("/low-stock-items")}
+              >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-purple-900 dark:text-purple-100">
                     Low Stock Items
@@ -113,7 +132,10 @@ export default function InventoryDashboard() {
                   <p className="text-xs text-purple-700 dark:text-purple-300">Requires attention</p>
                 </CardContent>
               </Card>
-              <Card className="border-purple-200 dark:border-purple-800">
+              <Card
+                className="border-purple-200 dark:border-purple-800 cursor-pointer hover:border-purple-400 dark:hover:border-purple-600 transition-colors"
+                onClick={() => router.push("/checked-out-items")}
+              >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-purple-900 dark:text-purple-100">
                     Items Checked Out
@@ -138,7 +160,10 @@ export default function InventoryDashboard() {
                   <p className="text-xs text-purple-700 dark:text-purple-300">For current events</p>
                 </CardContent>
               </Card>
-              <Card className="border-purple-200 dark:border-purple-800">
+              <Card
+                className="border-purple-200 dark:border-purple-800 cursor-pointer hover:border-purple-400 dark:hover:border-purple-600 transition-colors"
+                onClick={() => router.push("/upcoming-returns")}
+              >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-purple-900 dark:text-purple-100">
                     Upcoming Returns
@@ -146,7 +171,7 @@ export default function InventoryDashboard() {
                   <CheckCircle2 className="h-4 w-4 text-green-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-purple-900 dark:text-purple-50">12</div>
+                  <div className="text-2xl font-bold text-purple-900 dark:text-purple-50">{upcomingReturns}</div>
                   <p className="text-xs text-purple-700 dark:text-purple-300">Due within 48 hours</p>
                 </CardContent>
               </Card>
