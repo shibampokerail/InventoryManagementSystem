@@ -166,7 +166,7 @@ def update_inventory_usage(id):
 def update_slack_management():
     try:
         db = connect_to_mongo()
-        if not db:
+        if db is None:
             logging.error("Failed to connect to MongoDB")
             return jsonify({'error': 'Database connection failed'}), 500
 

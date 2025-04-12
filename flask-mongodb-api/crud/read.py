@@ -212,7 +212,7 @@ logging.basicConfig(level=logging.INFO, filename='app.log', format='%(asctime)s 
 def get_slack_management():
     try:
         db = connect_to_mongo()
-        if not db:
+        if db is None:
             logging.error("Failed to connect to MongoDB")
             return jsonify({'error': 'Database connection failed'}), 500
 

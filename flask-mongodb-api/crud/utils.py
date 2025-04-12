@@ -43,6 +43,17 @@ def api_key_or_jwt_required():
             # If no API key, fall back to JWT authentication
             @jwt_required()
             def jwt_protected():
+                # Check if the JWT is revoked
+                jwt_data = get_jwt()
+                jti = jwt_data.get("jti")
+                db = connect_to_mongo()
+                if db is None:
+                    return jsonify({'error': 'Database connection failed'}), 500
+
+                revoked_token = db.RevokedTokens.find_one({"jti": jti})
+                if revoked_token:
+                    return jsonify({'error': 'Token has been revoked'}), 401
+
                 return f(*args, **kwargs)
             return jwt_protected()
         return decorated_function

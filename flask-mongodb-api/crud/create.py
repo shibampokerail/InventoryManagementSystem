@@ -161,7 +161,7 @@ def create_inventory_usage():
 @require_role('admin')  # Only admins can create the configuration
 def create_slack_management():
     db = connect_to_mongo()
-    if not db:
+    if db is None:
         return jsonify({'error': 'Database connection failed'}), 500
 
     # Check if a document already exists
