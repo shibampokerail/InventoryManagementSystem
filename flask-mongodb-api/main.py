@@ -90,4 +90,4 @@ app.route('/api/inventory-usage/<id>', methods=['DELETE'])(delete_inventory_usag
 app.route('/api/inventory-usage/item/<item_id>', methods=['GET'])(get_usage_by_item)  # Added
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5001) 
+    app.run(debug=False, host='0.0.0.0', port=5001) 
