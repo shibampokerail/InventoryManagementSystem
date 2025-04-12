@@ -4,16 +4,16 @@ import os
 from dotenv import load_dotenv
 from crud.create import (
     create_user, create_vendor, create_inventory_item, create_order,
-    create_vendor_item, create_notification, create_log, create_inventory_usage
+    create_vendor_item, create_notification, create_log, create_inventory_usage, create_slack_management
 )
 from crud.read import (
     get_users, get_vendors, get_orders, get_vendor_items,
     get_notifications, get_logs, get_inventory_usage, get_inventory_items, get_user,
-    get_vendor, get_items_by_vendor, get_inventory_item, get_vendor_item, get_usage_by_item
+    get_vendor, get_items_by_vendor, get_inventory_item, get_vendor_item, get_usage_by_item, get_slack_management
 )
 from crud.update import (
     update_user, update_vendor, update_inventory_item, update_order,
-    update_vendor_item, update_notification, update_log, update_inventory_usage
+    update_vendor_item, update_notification, update_log, update_inventory_usage, update_slack_management
 )
 from crud.delete import (
     delete_user, delete_vendor, delete_inventory_item, delete_order,
@@ -88,6 +88,12 @@ app.route('/api/inventory-usage', methods=['GET'])(get_inventory_usage)
 app.route('/api/inventory-usage/<id>', methods=['PUT'])(update_inventory_usage)
 app.route('/api/inventory-usage/<id>', methods=['DELETE'])(delete_inventory_usage)
 app.route('/api/inventory-usage/item/<item_id>', methods=['GET'])(get_usage_by_item)  # Added
+
+
+# Routes for Slack Management
+app.route('/api/slack-management', methods=['POST'])(create_slack_management)
+app.route('/api/slack-management', methods=['GET'])(get_slack_management)
+app.route('/api/slack-management', methods=['PUT'])(update_slack_management)
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=5001) 

@@ -3,7 +3,10 @@ from flask_jwt_extended import jwt_required
 from crud.utils import api_key_or_jwt_required, connect_to_mongo, require_role
 from bson.objectid import ObjectId
 from datetime import datetime
+import logging
 
+# Ensure logging is configured
+logging.basicConfig(level=logging.INFO, filename='app.log', format='%(asctime)s [%(levelname)s] %(message)s')
 # Update a User
 @require_role('admin')
 def update_user(id):
@@ -155,3 +158,47 @@ def update_inventory_usage(id):
     if result.matched_count == 0:
         return jsonify({'error': 'Inventory usage record not found'}), 404
     return jsonify({'message': 'Inventory usage record updated successfully'}), 200
+
+
+# Update Slack Management Configuration
+@api_key_or_jwt_required()
+@require_role('admin')  # Only admins can update the configuration
+def update_slack_management():
+    try:
+        db = connect_to_mongo()
+        if not db:
+            logging.error("Failed to connect to MongoDB")
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        # Check if a document exists
+        existing_config = db.SlackManagement.find_one()
+        if not existing_config:
+            return jsonify({'error': 'Slack management configuration not found. Create one first.'}), 404
+
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        # Prepare update fields
+        update_fields = {}
+        if 'bot_token' in data:
+            update_fields['bot_token'] = data['bot_token']
+        if 'app_token' in data:
+            update_fields['app_token'] = data['app_token']
+        if 'user_token' in data:
+            update_fields['user_token'] = data['user_token']
+        if 'channel_ids' in data:
+            update_fields['channel_ids'] = data['channel_ids']
+        update_fields['updated_at'] = datetime.utcnow().isoformat()
+
+        # Update the document
+        result = db.SlackManagement.update_one({}, {'$set': update_fields})
+        if result.modified_count:
+            updated_config = db.SlackManagement.find_one()
+            updated_config['_id'] = str(updated_config['_id'])
+            return jsonify(updated_config), 200
+        return jsonify({'message': 'No changes made'}), 200
+
+    except Exception as e:
+        logging.error(f"Error updating slack management configuration: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred', 'details': str(e)}), 500

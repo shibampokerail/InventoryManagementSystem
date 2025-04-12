@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required
 from crud.utils import connect_to_mongo, api_key_or_jwt_required
 from bson.objectid import ObjectId
 from bson.errors import InvalidId 
+import logging
 # Get all users
 @api_key_or_jwt_required()
 def get_users():
@@ -205,3 +206,22 @@ def get_usage_by_item(item_id):
         usage['itemId'] = str(usage['itemId'])
         usage['userId'] = str(usage['userId'])
     return jsonify(usages), 200
+
+logging.basicConfig(level=logging.INFO, filename='app.log', format='%(asctime)s [%(levelname)s] %(message)s')
+@api_key_or_jwt_required()
+def get_slack_management():
+    try:
+        db = connect_to_mongo()
+        if not db:
+            logging.error("Failed to connect to MongoDB")
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        config = db.SlackManagement.find_one()
+        if config:
+            config['_id'] = str(config['_id'])
+            return jsonify(config), 200
+        return jsonify({'error': 'Slack management configuration not found'}), 404
+
+    except Exception as e:
+        logging.error(f"Error retrieving slack management configuration: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred', 'details': str(e)}), 500

@@ -155,3 +155,36 @@ def create_inventory_usage():
     new_usage['itemId'] = str(new_usage['itemId'])
     new_usage['userId'] = str(new_usage['userId'])
     return jsonify(new_usage), 201
+
+
+@api_key_or_jwt_required()
+@require_role('admin')  # Only admins can create the configuration
+def create_slack_management():
+    db = connect_to_mongo()
+    if not db:
+        return jsonify({'error': 'Database connection failed'}), 500
+
+    # Check if a document already exists
+    existing_config = db.SlackManagement.find_one()
+    if existing_config:
+        return jsonify({'error': 'Slack management configuration already exists. Use update to modify.'}), 400
+
+    data = request.get_json()
+    if not data or not all(key in data for key in ['bot_token', 'app_token', 'user_token']):
+        return jsonify({'error': 'Missing required fields: bot_token, app_token, user_token'}), 400
+
+    # Channel IDs are optional; default to empty list if not provided
+    channel_ids = data.get('channel_ids', [])
+
+    new_config = {
+        'bot_token': data['bot_token'],
+        'app_token': data['app_token'],
+        'user_token': data['user_token'],
+        'channel_ids': channel_ids,
+        'created_at': datetime.utcnow().isoformat(),
+        'updated_at': datetime.utcnow().isoformat()
+    }
+
+    result = db.SlackManagement.insert_one(new_config)
+    new_config['_id'] = str(result.inserted_id)
+    return jsonify(new_config), 201
