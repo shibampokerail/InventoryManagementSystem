@@ -13,74 +13,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { CalendarIcon, Plus, Trash2, CheckCircle, RotateCcw } from "lucide-react"
 import { format } from "date-fns"
-
-// Dummy data for available items
-const availableItems = [
-  { id: "INV001", name: "Folding Tables", category: "Furniture", available: 45 },
-  { id: "INV002", name: "Chairs", category: "Furniture", available: 120 },
-  { id: "INV004", name: "Tablecloths", category: "Linens", available: 32 },
-  { id: "INV006", name: "Microphones", category: "Electronics", available: 12 },
-  { id: "INV007", name: "Extension Cords", category: "Electronics", available: 18 },
-  { id: "INV008", name: "Whiteboards", category: "Office Equipment", available: 10 },
-  { id: "INV009", name: "Podium", category: "Furniture", available: 3 },
-  { id: "INV010", name: "Water Pitchers", category: "Food Service", available: 15 },
-  { id: "INV011", name: "Serving Trays", category: "Food Service", available: 25 },
-  { id: "INV013", name: "Easels", category: "Office Equipment", available: 8 },
-]
-
-// Dummy data for recent checkouts
-const recentCheckouts = [
-  {
-    id: "CO-2023-042",
-    event: "Student Government Meeting",
-    requestedBy: "Sarah Johnson",
-    department: "Student Affairs",
-    checkoutDate: "2023-03-20",
-    returnDate: "2023-03-22",
-    status: "Active",
-    items: [
-      { name: "Folding Tables", quantity: 5 },
-      { name: "Chairs", quantity: 20 },
-      { name: "Microphones", quantity: 2 },
-    ],
-  },
-  {
-    id: "CO-2023-041",
-    event: "Career Fair",
-    requestedBy: "Michael Chen",
-    department: "Career Services",
-    checkoutDate: "2023-03-18",
-    returnDate: "2023-03-19",
-    status: "Returned",
-    items: [
-      { name: "Folding Tables", quantity: 15 },
-      { name: "Chairs", quantity: 60 },
-      { name: "Tablecloths", quantity: 15 },
-    ],
-  },
-  {
-    id: "CO-2023-040",
-    event: "Faculty Workshop",
-    requestedBy: "Aisha Patel",
-    department: "Academic Affairs",
-    checkoutDate: "2023-03-15",
-    returnDate: "2023-03-15",
-    status: "Returned",
-    items: [
-      { name: "Projectors", quantity: 1 },
-      { name: "Whiteboards", quantity: 2 },
-      { name: "Chairs", quantity: 15 },
-    ],
-  },
-]
+import { useInventory } from "@/context/inventory-context"
+import { useToast } from "@/components/ui/use-toast"
 
 export function CheckoutForm() {
+  const { inventoryItems, checkoutItem, returnItem } = useInventory()
+  const { toast } = useToast()
+
   const [selectedItems, setSelectedItems] = useState<Array<{ id: string; name: string; quantity: number }>>([])
   const [selectedItem, setSelectedItem] = useState("")
   const [quantity, setQuantity] = useState(1)
   const [checkoutDate, setCheckoutDate] = useState<Date | undefined>(new Date())
   const [returnDate, setReturnDate] = useState<Date | undefined>(new Date())
   const [activeTab, setActiveTab] = useState("checkout") // checkout or history
+  const [eventName, setEventName] = useState("")
+  const [department, setDepartment] = useState("")
+  const [location, setLocation] = useState("")
+
+  // Filter to only show available items (quantity > 0)
+  const availableItems = inventoryItems.filter((item) => item.quantity > 0)
 
   const handleAddItem = () => {
     if (!selectedItem) return
@@ -109,6 +60,95 @@ export function CheckoutForm() {
   const handleRemoveItem = (id: string) => {
     setSelectedItems(selectedItems.filter((item) => item.id !== id))
   }
+
+  const handleSubmitCheckout = () => {
+    // Validate form
+    if (!eventName || !department || !location || selectedItems.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields and select at least one item.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Process each selected item
+    selectedItems.forEach((item) => {
+      checkoutItem(item.id, item.quantity, eventName)
+    })
+
+    // Show success message
+    toast({
+      title: "Items Checked Out",
+      description: `${selectedItems.length} item(s) have been checked out for ${eventName}`,
+      variant: "success",
+    })
+
+    // Reset form
+    setSelectedItems([])
+    setEventName("")
+    setDepartment("")
+    setLocation("")
+  }
+
+  const handleReturnItems = (checkoutId: string) => {
+    // In a real app, you would get the actual items from the checkout record
+    // For this demo, we'll simulate returning a projector
+    const projectorId = "INV005"
+    returnItem(projectorId, 1)
+
+    toast({
+      title: "Items Returned",
+      description: "The items have been successfully returned to inventory.",
+      variant: "success",
+    })
+  }
+
+  // Sample data for recent checkouts
+  const recentCheckouts = [
+    {
+      id: "CO-2023-042",
+      event: "Student Government Meeting",
+      requestedBy: "Sarah Johnson",
+      department: "Student Affairs",
+      checkoutDate: "2023-03-20",
+      returnDate: "2023-03-22",
+      status: "Active",
+      items: [
+        { name: "Folding Tables", quantity: 5 },
+        { name: "Chairs", quantity: 20 },
+        { name: "Microphones", quantity: 2 },
+      ],
+    },
+    {
+      id: "CO-2023-041",
+      event: "Career Fair",
+      requestedBy: "Michael Chen",
+      department: "Career Services",
+      checkoutDate: "2023-03-18",
+      returnDate: "2023-03-19",
+      status: "Returned",
+      items: [
+        { name: "Folding Tables", quantity: 15 },
+        { name: "Chairs", quantity: 60 },
+        { name: "Tablecloths", quantity: 15 },
+      ],
+    },
+    {
+      id: "CO-2023-040",
+      event: "Faculty Workshop",
+      requestedBy: "Aisha Patel",
+      department: "Academic Affairs",
+      checkoutDate: "2023-03-15",
+      returnDate: "2023-03-15",
+      status: "Returned",
+      items: [
+        { name: "Projectors", quantity: 1 },
+        { name: "Whiteboards", quantity: 2 },
+        { name: "Chairs", quantity: 15 },
+      ],
+    },
+  ]
 
   return (
     <div className="space-y-6">
@@ -171,7 +211,7 @@ export function CheckoutForm() {
                   <Label htmlFor="department" className="text-purple-900 dark:text-purple-50">
                     Department
                   </Label>
-                  <Select>
+                  <Select value={department} onValueChange={setDepartment}>
                     <SelectTrigger id="department" className="border-purple-200 dark:border-purple-800">
                       <SelectValue placeholder="Select department" />
                     </SelectTrigger>
@@ -194,6 +234,8 @@ export function CheckoutForm() {
                     id="event"
                     placeholder="Name of your event"
                     className="border-purple-200 dark:border-purple-800"
+                    value={eventName}
+                    onChange={(e) => setEventName(e.target.value)}
                   />
                 </div>
 
@@ -205,6 +247,8 @@ export function CheckoutForm() {
                     id="location"
                     placeholder="Where will the event be held?"
                     className="border-purple-200 dark:border-purple-800"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
                   />
                 </div>
 
@@ -281,7 +325,7 @@ export function CheckoutForm() {
                     <SelectContent>
                       {availableItems.map((item) => (
                         <SelectItem key={item.id} value={item.id}>
-                          {item.name} ({item.available} available)
+                          {item.name} ({item.quantity} available)
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -340,7 +384,9 @@ export function CheckoutForm() {
                   </Table>
                 </div>
 
-                <Button className="w-full bg-purple-700 hover:bg-purple-800">Submit Request</Button>
+                <Button className="w-full bg-purple-700 hover:bg-purple-800" onClick={handleSubmitCheckout}>
+                  Submit Request
+                </Button>
               </CardContent>
             </Card>
           </div>
@@ -402,6 +448,7 @@ export function CheckoutForm() {
                       <Button
                         variant="outline"
                         className="border-purple-200 text-purple-700 hover:bg-purple-100 dark:border-purple-800 dark:text-purple-300 dark:hover:bg-purple-900"
+                        onClick={() => handleReturnItems(checkout.id)}
                       >
                         <RotateCcw className="mr-2 h-4 w-4" />
                         Return Items
@@ -422,4 +469,3 @@ export function CheckoutForm() {
     </div>
   )
 }
-

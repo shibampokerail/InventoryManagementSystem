@@ -12,8 +12,26 @@ import { PlusCircle, AlertTriangle, CheckCircle2, Package } from "lucide-react"
 import { InventoryFullView } from "@/components/inventory-full-view"
 import { CheckoutForm } from "@/components/checkout-form"
 import { ReportsView } from "@/components/reports-view"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { AddItemForm } from "@/components/add-item-form"
+import { useInventory } from "@/context/inventory-context"
 
 export default function InventoryDashboard() {
+  // Access inventory context to ensure it's available
+  const { inventoryItems } = useInventory()
+
+  // Count items for dashboard stats
+  const totalItems = inventoryItems.reduce((sum, item) => sum + item.quantity, 0)
+  const lowStockItems = inventoryItems.filter((item) => item.status === "Low Stock").length
+  const checkedOutItems = inventoryItems.filter((item) => item.status === "Partially Checked Out").length
+
   return (
     <div className="flex min-h-screen flex-col">
       <div className="border-b bg-purple-50 dark:bg-purple-950">
@@ -33,10 +51,23 @@ export default function InventoryDashboard() {
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight text-purple-900 dark:text-purple-50">Inventory Dashboard</h2>
           <div className="flex items-center space-x-2">
-            <Button className="bg-purple-700 hover:bg-purple-800 text-white">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Add New Item
-            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="bg-purple-700 hover:bg-purple-800 text-white">
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Add New Item
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[600px] border-purple-200 dark:border-purple-800">
+                <DialogHeader>
+                  <DialogTitle className="text-purple-900 dark:text-purple-50">Add New Inventory Item</DialogTitle>
+                  <DialogDescription className="text-purple-700 dark:text-purple-300">
+                    Fill in the details to add a new item to your inventory.
+                  </DialogDescription>
+                </DialogHeader>
+                <AddItemForm />
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
         <Tabs defaultValue="overview" className="space-y-4">
@@ -64,8 +95,10 @@ export default function InventoryDashboard() {
                   <Package className="h-4 w-4 text-purple-700 dark:text-purple-300" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-purple-900 dark:text-purple-50">1,248</div>
-                  <p className="text-xs text-purple-700 dark:text-purple-300">Across 32 categories</p>
+                  <div className="text-2xl font-bold text-purple-900 dark:text-purple-50">{totalItems}</div>
+                  <p className="text-xs text-purple-700 dark:text-purple-300">
+                    Across {inventoryItems.length} categories
+                  </p>
                 </CardContent>
               </Card>
               <Card className="border-purple-200 dark:border-purple-800">
@@ -76,7 +109,7 @@ export default function InventoryDashboard() {
                   <AlertTriangle className="h-4 w-4 text-amber-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-purple-900 dark:text-purple-50">23</div>
+                  <div className="text-2xl font-bold text-purple-900 dark:text-purple-50">{lowStockItems}</div>
                   <p className="text-xs text-purple-700 dark:text-purple-300">Requires attention</p>
                 </CardContent>
               </Card>
@@ -101,7 +134,7 @@ export default function InventoryDashboard() {
                   </svg>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-purple-900 dark:text-purple-50">89</div>
+                  <div className="text-2xl font-bold text-purple-900 dark:text-purple-50">{checkedOutItems}</div>
                   <p className="text-xs text-purple-700 dark:text-purple-300">For current events</p>
                 </CardContent>
               </Card>
@@ -190,4 +223,3 @@ export default function InventoryDashboard() {
     </div>
   )
 }
-

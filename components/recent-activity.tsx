@@ -1,73 +1,18 @@
+"use client"
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ArrowDownIcon, ArrowUpIcon, RefreshCw } from "lucide-react"
-
-const activities = [
-  {
-    id: "act1",
-    user: {
-      name: "Sarah Johnson",
-      email: "sarah.j@truman.edu",
-      avatar: "SJ",
-    },
-    action: "checked out",
-    item: "Folding Tables",
-    quantity: 5,
-    timestamp: "2 hours ago",
-  },
-  {
-    id: "act2",
-    user: {
-      name: "Michael Chen",
-      email: "m.chen@truman.edu",
-      avatar: "MC",
-    },
-    action: "returned",
-    item: "Projector",
-    quantity: 1,
-    timestamp: "3 hours ago",
-  },
-  {
-    id: "act3",
-    user: {
-      name: "Aisha Patel",
-      email: "a.patel@truman.edu",
-      avatar: "AP",
-    },
-    action: "added",
-    item: "Tissues",
-    quantity: 20,
-    timestamp: "Yesterday",
-  },
-  {
-    id: "act4",
-    user: {
-      name: "James Wilson",
-      email: "j.wilson@truman.edu",
-      avatar: "JW",
-    },
-    action: "checked out",
-    item: "Microphones",
-    quantity: 2,
-    timestamp: "Yesterday",
-  },
-  {
-    id: "act5",
-    user: {
-      name: "Emma Davis",
-      email: "e.davis@truman.edu",
-      avatar: "ED",
-    },
-    action: "updated count",
-    item: "Chairs",
-    quantity: 120,
-    timestamp: "2 days ago",
-  },
-]
+import { useInventory } from "@/context/inventory-context"
 
 export function RecentActivity() {
+  const { activities } = useInventory()
+
+  // Show only the first 5 activities
+  const displayActivities = activities.slice(0, 5)
+
   return (
     <div className="space-y-8">
-      {activities.map((activity) => (
+      {displayActivities.map((activity) => (
         <div className="flex items-center" key={activity.id}>
           <Avatar className="h-9 w-9 border-2 border-purple-200 dark:border-purple-700">
             <AvatarImage src="/placeholder.svg?height=36&width=36" alt={activity.user.name} />
@@ -93,4 +38,3 @@ export function RecentActivity() {
     </div>
   )
 }
-

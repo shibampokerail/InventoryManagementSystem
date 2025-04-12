@@ -15,176 +15,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Edit, MoreHorizontal, Trash2, ArrowUpDown, FileDown, Filter, ShoppingCart } from "lucide-react"
-
-const inventoryItems = [
-  {
-    id: "INV001",
-    name: "Folding Tables",
-    category: "Furniture",
-    quantity: 45,
-    status: "In Stock",
-    location: "Main Storage",
-    lastCheckedOut: "2023-03-15",
-    condition: "Good",
-    value: "$2,250.00",
-  },
-  {
-    id: "INV002",
-    name: "Chairs",
-    category: "Furniture",
-    quantity: 120,
-    status: "In Stock",
-    location: "Main Storage",
-    lastCheckedOut: "2023-03-10",
-    condition: "Good",
-    value: "$3,600.00",
-  },
-  {
-    id: "INV003",
-    name: "Tissues",
-    category: "Supplies",
-    quantity: 8,
-    status: "Low Stock",
-    location: "Supply Closet B",
-    lastCheckedOut: "2023-03-18",
-    condition: "N/A",
-    value: "$24.00",
-  },
-  {
-    id: "INV004",
-    name: "Tablecloths",
-    category: "Linens",
-    quantity: 32,
-    status: "In Stock",
-    location: "Linen Storage",
-    lastCheckedOut: "2023-03-05",
-    condition: "Good",
-    value: "$640.00",
-  },
-  {
-    id: "INV005",
-    name: "Projectors",
-    category: "Electronics",
-    quantity: 5,
-    status: "Partially Checked Out",
-    location: "Tech Room",
-    lastCheckedOut: "2023-03-20",
-    condition: "Excellent",
-    value: "$2,500.00",
-  },
-  {
-    id: "INV006",
-    name: "Microphones",
-    category: "Electronics",
-    quantity: 12,
-    status: "In Stock",
-    location: "Tech Room",
-    lastCheckedOut: "2023-03-12",
-    condition: "Good",
-    value: "$1,200.00",
-  },
-  {
-    id: "INV007",
-    name: "Extension Cords",
-    category: "Electronics",
-    quantity: 18,
-    status: "In Stock",
-    location: "Supply Closet A",
-    lastCheckedOut: "2023-03-08",
-    condition: "Fair",
-    value: "$270.00",
-  },
-  {
-    id: "INV008",
-    name: "Whiteboards",
-    category: "Office Equipment",
-    quantity: 10,
-    status: "In Stock",
-    location: "Office Storage",
-    lastCheckedOut: "2023-02-28",
-    condition: "Good",
-    value: "$750.00",
-  },
-  {
-    id: "INV009",
-    name: "Podium",
-    category: "Furniture",
-    quantity: 3,
-    status: "In Stock",
-    location: "Main Storage",
-    lastCheckedOut: "2023-02-15",
-    condition: "Excellent",
-    value: "$900.00",
-  },
-  {
-    id: "INV010",
-    name: "Water Pitchers",
-    category: "Food Service",
-    quantity: 15,
-    status: "In Stock",
-    location: "Kitchen Storage",
-    lastCheckedOut: "2023-03-17",
-    condition: "Good",
-    value: "$225.00",
-  },
-  {
-    id: "INV011",
-    name: "Serving Trays",
-    category: "Food Service",
-    quantity: 25,
-    status: "In Stock",
-    location: "Kitchen Storage",
-    lastCheckedOut: "2023-03-17",
-    condition: "Good",
-    value: "$375.00",
-  },
-  {
-    id: "INV012",
-    name: "Portable Speakers",
-    category: "Electronics",
-    quantity: 4,
-    status: "Partially Checked Out",
-    location: "Tech Room",
-    lastCheckedOut: "2023-03-19",
-    condition: "Excellent",
-    value: "$800.00",
-  },
-  {
-    id: "INV013",
-    name: "Easels",
-    category: "Office Equipment",
-    quantity: 8,
-    status: "In Stock",
-    location: "Office Storage",
-    lastCheckedOut: "2023-03-01",
-    condition: "Good",
-    value: "$400.00",
-  },
-  {
-    id: "INV014",
-    name: "Clipboards",
-    category: "Office Equipment",
-    quantity: 20,
-    status: "In Stock",
-    location: "Office Storage",
-    lastCheckedOut: "2023-02-20",
-    condition: "Good",
-    value: "$100.00",
-  },
-  {
-    id: "INV015",
-    name: "Hand Sanitizer",
-    category: "Supplies",
-    quantity: 6,
-    status: "Low Stock",
-    location: "Supply Closet B",
-    lastCheckedOut: "2023-03-18",
-    condition: "N/A",
-    value: "$60.00",
-  },
-]
+import { useInventory } from "@/context/inventory-context"
 
 export function InventoryFullView() {
+  const { inventoryItems } = useInventory()
   const [searchTerm, setSearchTerm] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
@@ -200,8 +34,8 @@ export function InventoryFullView() {
   })
 
   // Get unique categories for filter dropdown
-  const categories = ["all", ...new Set(inventoryItems.map((item) => item.category))]
-  const statuses = ["all", ...new Set(inventoryItems.map((item) => item.status))]
+  const categories = ["all", ...Array.from(new Set(inventoryItems.map((item) => item.category)))]
+  const statuses = ["all", ...Array.from(new Set(inventoryItems.map((item) => item.status)))]
 
   return (
     <div className="space-y-4">
@@ -300,9 +134,9 @@ export function InventoryFullView() {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-purple-700 dark:text-purple-300">{item.location}</TableCell>
-                <TableCell className="text-purple-700 dark:text-purple-300">{item.lastCheckedOut}</TableCell>
-                <TableCell className="text-purple-700 dark:text-purple-300">{item.condition}</TableCell>
-                <TableCell className="text-purple-700 dark:text-purple-300">{item.value}</TableCell>
+                <TableCell className="text-purple-700 dark:text-purple-300">{item.lastCheckedOut || "N/A"}</TableCell>
+                <TableCell className="text-purple-700 dark:text-purple-300">{item.condition || "N/A"}</TableCell>
+                <TableCell className="text-purple-700 dark:text-purple-300">{item.value || "$0.00"}</TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -357,4 +191,3 @@ export function InventoryFullView() {
     </div>
   )
 }
-

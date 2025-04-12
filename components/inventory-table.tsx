@@ -1,66 +1,15 @@
+"use client"
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-
-const inventoryItems = [
-  {
-    id: "INV001",
-    name: "Folding Tables",
-    category: "Furniture",
-    quantity: 45,
-    status: "In Stock",
-    location: "Main Storage",
-  },
-  {
-    id: "INV002",
-    name: "Chairs",
-    category: "Furniture",
-    quantity: 120,
-    status: "In Stock",
-    location: "Main Storage",
-  },
-  {
-    id: "INV003",
-    name: "Tissues",
-    category: "Supplies",
-    quantity: 8,
-    status: "Low Stock",
-    location: "Supply Closet B",
-  },
-  {
-    id: "INV004",
-    name: "Tablecloths",
-    category: "Linens",
-    quantity: 32,
-    status: "In Stock",
-    location: "Linen Storage",
-  },
-  {
-    id: "INV005",
-    name: "Projectors",
-    category: "Electronics",
-    quantity: 5,
-    status: "Partially Checked Out",
-    location: "Tech Room",
-  },
-  {
-    id: "INV006",
-    name: "Microphones",
-    category: "Electronics",
-    quantity: 12,
-    status: "In Stock",
-    location: "Tech Room",
-  },
-  {
-    id: "INV007",
-    name: "Extension Cords",
-    category: "Electronics",
-    quantity: 18,
-    status: "In Stock",
-    location: "Supply Closet A",
-  },
-]
+import { useInventory } from "@/context/inventory-context"
 
 export function InventoryTable() {
+  const { inventoryItems } = useInventory()
+
+  // Show only the first 7 items for the overview table
+  const displayItems = inventoryItems.slice(0, 7)
+
   return (
     <div className="rounded-md border border-purple-200 dark:border-purple-800">
       <Table>
@@ -74,7 +23,7 @@ export function InventoryTable() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {inventoryItems.map((item) => (
+          {displayItems.map((item) => (
             <TableRow key={item.id} className="hover:bg-purple-50 dark:hover:bg-purple-900/50">
               <TableCell className="font-medium text-purple-900 dark:text-purple-50">{item.name}</TableCell>
               <TableCell className="text-purple-700 dark:text-purple-300">{item.category}</TableCell>
@@ -103,4 +52,3 @@ export function InventoryTable() {
     </div>
   )
 }
-
