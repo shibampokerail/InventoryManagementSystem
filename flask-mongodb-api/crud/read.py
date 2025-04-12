@@ -17,19 +17,20 @@ def get_users():
         return jsonify({'error': 'Failed to fetch users'}), 500
 
 @api_key_or_jwt_required()
-def get_user(identifier):
+def get_user(id):
     db = connect_to_mongo()
     try:
         # Try to find user by ID first
         try:
-            user = db.Users.find_one({'_id': ObjectId(identifier)})
+            user = db.Users.find_one({'_id': ObjectId(id)})
         except InvalidId:
             user = None  # Invalid ObjectId, proceed to email lookup
             
         # If no user found by ID, try by email
         if not user:
-            user = db.Users.find_one({'email': identifier})
-        
+            user = db.Users.find_one({'email': id})
+        if not user:
+            user = db.Users.find_one({'name': id})
         if user:
             user['_id'] = str(user['_id'])  # Convert ObjectId to string for JSON serialization
             return jsonify(user), 200
@@ -60,7 +61,7 @@ def get_vendor(vendor_id):
             vendor['_id'] = str(vendor['_id'])
             return jsonify(vendor), 200
         return jsonify({'error': 'Vendor not found'}), 404
-    except Exleption as e:
+    except Exception as e:
         return jsonify({'error': 'Failed to fetch vendor'}), 500
 
 # Get all orders
@@ -160,13 +161,13 @@ def get_inventory_items():
 
 # Read a single Inventory Item by ID
 @api_key_or_jwt_required()
-def get_inventory_item(item_id):
+def get_inventory_item(id):
     try:
         # Validate ObjectId
         try:
-            object_id = ObjectId(item_id)
+            object_id = ObjectId(id)
         except InvalidId as e:
-            logging.error(f"Invalid ObjectId format for item_id {item_id}: {str(e)}")
+            logging.error(f"Invalid ObjectId format for item_id {id}: {str(e)}")
             return jsonify({'error': 'Invalid item ID format'}), 400
 
         # Connect to MongoDB
@@ -183,7 +184,7 @@ def get_inventory_item(item_id):
         return jsonify({'error': 'Item not found'}), 404
 
     except Exception as e:
-        logging.error(f"Error retrieving inventory item {item_id}: {str(e)}")
+        logging.error(f"Error retrieving inventory item {id}: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
 
 # Read a single Vendor Item by ID

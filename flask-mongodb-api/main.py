@@ -47,8 +47,8 @@ app.route('/api/vendors', methods=['POST'])(create_vendor)
 app.route('/api/vendors', methods=['GET'])(get_vendors)
 app.route('/api/vendors/<id>', methods=['PUT'])(update_vendor)
 app.route('/api/vendors/<id>', methods=['DELETE'])(delete_vendor)
-app.route('/api/vendors/<id>', methods=['GET'])(get_vendor)  # Added
-app.route('/api/vendors/<id>/items', methods=['GET'])(get_items_by_vendor)  # Added
+app.route('/api/vendors/<vendor_id>', methods=['GET'])(get_vendor)  # Added
+app.route('/api/vendors/<vendor_id>/items', methods=['GET'])(get_items_by_vendor)  # Added
 
 # Routes for Inventory Items
 app.route('/api/inventory-items', methods=['POST'])(create_inventory_item)
@@ -68,7 +68,7 @@ app.route('/api/vendor-items', methods=['POST'])(create_vendor_item)
 app.route('/api/vendor-items', methods=['GET'])(get_vendor_items)
 app.route('/api/vendor-items/<id>', methods=['PUT'])(update_vendor_item)
 app.route('/api/vendor-items/<id>', methods=['DELETE'])(delete_vendor_item)
-app.route('/api/vendor-items/<id>', methods=['GET'])(get_vendor_item)  # Added
+app.route('/api/vendor-items/<vendor_item_id>', methods=['GET'])(get_vendor_item)  # Added
 
 # Routes for Notifications
 app.route('/api/notifications', methods=['POST'])(create_notification)
