@@ -52,7 +52,7 @@ app.route('/api/vendors/<vendor_id>/items', methods=['GET'])(get_items_by_vendor
 
 # Routes for Inventory Items
 app.route('/api/inventory-items', methods=['POST'])(create_inventory_item)
-app.route('/api/inventory-items/<id>', methods=['GET'])(get_inventory_item)  # Added
+app.route('/api/inventory-items/<item_id>', methods=['GET'])(get_inventory_item)  # Added
 app.route('/api/inventory-items', methods=['GET'])(get_inventory_items)
 app.route('/api/inventory-items/<id>', methods=['PUT'])(update_inventory_item)
 app.route('/api/inventory-items/<id>', methods=['DELETE'])(delete_inventory_item)

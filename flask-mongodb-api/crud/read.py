@@ -161,21 +161,17 @@ def get_inventory_items():
 
 # Read a single Inventory Item by ID
 @api_key_or_jwt_required()
-def get_inventory_item(id):
+def get_inventory_item(item_id):
     try:
         # Validate ObjectId
         try:
-            object_id = ObjectId(id)
+            object_id = ObjectId(item_id)
         except InvalidId as e:
-            logging.error(f"Invalid ObjectId format for item_id {id}: {str(e)}")
+            logging.error(f"Invalid ObjectId format for item_id {item_id}: {str(e)}")
             return jsonify({'error': 'Invalid item ID format'}), 400
 
         # Connect to MongoDB
         db = connect_to_mongo()
-        if not db:
-            logging.error("Failed to connect to MongoDB")
-            return jsonify({'error': 'Database connection failed'}), 500
-
         # Query for the item
         item = db.InventoryItems.find_one({'_id': object_id})
         if item:
@@ -184,7 +180,7 @@ def get_inventory_item(id):
         return jsonify({'error': 'Item not found'}), 404
 
     except Exception as e:
-        logging.error(f"Error retrieving inventory item {id}: {str(e)}")
+        logging.error(f"Error retrieving inventory item {item_id}: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
 
 # Read a single Vendor Item by ID
