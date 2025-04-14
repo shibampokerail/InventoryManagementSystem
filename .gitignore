@@ -1,0 +1,30 @@
+# Ignore the .env file (contains sensitive environment variables)
+.env
+flask-monggodb-api/.env
+# Python-specific ignores
+__pycache__/
+flask-monggodb-api/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Flask-specific ignores
+instance/
+*.log
+
+# IDE-specific ignores (optional, depending on your editor)
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Miscellaneous
+*.DS_Store
+*.swp
+*.bak
