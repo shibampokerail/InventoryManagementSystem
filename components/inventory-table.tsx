@@ -1,14 +1,22 @@
-"use client"
+// components/inventory-table.tsx
+"use client";
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { useInventory } from "@/context/inventory-context"
-
-export function InventoryTable() {
-  const { inventoryItems } = useInventory()
-
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+interface InventoryItem {
+  _id: string;
+  name: string;
+  category?: string;
+  quantity: number;
+  status?: string;
+  location?: string;
+  last_checked_out?: string | null;
+  condition?: string;
+  value?: number;
+}
+export function InventoryTable({ inventoryItems }: { inventoryItems: InventoryItem[] }) {
   // Show only the first 7 items for the overview table
-  const displayItems = inventoryItems.slice(0, 7)
+  const displayItems = inventoryItems.slice(0, 7);
 
   return (
     <div className="rounded-md border border-purple-200 dark:border-purple-800">
@@ -24,9 +32,9 @@ export function InventoryTable() {
         </TableHeader>
         <TableBody>
           {displayItems.map((item) => (
-            <TableRow key={item.id} className="hover:bg-purple-50 dark:hover:bg-purple-900/50">
+            <TableRow key={item._id} className="hover:bg-purple-50 dark:hover:bg-purple-900/50">
               <TableCell className="font-medium text-purple-900 dark:text-purple-50">{item.name}</TableCell>
-              <TableCell className="text-purple-700 dark:text-purple-300">{item.category}</TableCell>
+              <TableCell className="text-purple-700 dark:text-purple-300">{item.category || "N/A"}</TableCell>
               <TableCell className="text-purple-900 dark:text-purple-50">{item.quantity}</TableCell>
               <TableCell>
                 <Badge
@@ -41,7 +49,7 @@ export function InventoryTable() {
                         : "bg-amber-100 text-amber-800 hover:bg-amber-100 dark:bg-amber-900 dark:text-amber-100"
                   }
                 >
-                  {item.status}
+                  {item.status || "Unknown"}
                 </Badge>
               </TableCell>
               <TableCell className="text-purple-700 dark:text-purple-300">{item.location}</TableCell>
@@ -50,5 +58,5 @@ export function InventoryTable() {
         </TableBody>
       </Table>
     </div>
-  )
+  );
 }

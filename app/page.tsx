@@ -1,17 +1,19 @@
-"use client"
+// app/dashboard.tsx
+"use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { InventoryTable } from "@/components/inventory-table"
-import { RecentActivity } from "@/components/recent-activity"
-import { Search } from "@/components/search"
-import { UserNav } from "@/components/user-nav"
-import { MainNav } from "@/components/main-nav"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
-import { PlusCircle, AlertTriangle, CheckCircle2, Package } from "lucide-react"
-import { InventoryFullView } from "@/components/inventory-full-view"
-import { CheckoutForm } from "@/components/checkout-form"
-import { ReportsView } from "@/components/reports-view"
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { InventoryTable } from "@/components/inventory-table";
+import { RecentActivity } from "@/components/recent-activity";
+import { Search } from "@/components/search";
+import { UserNav } from "@/components/user-nav";
+import { MainNav } from "@/components/main-nav";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { PlusCircle, AlertTriangle, CheckCircle2, Package } from "lucide-react";
+import { InventoryFullView } from "@/components/inventory-full-view";
+import { CheckoutForm } from "@/components/checkout-form";
+import { ReportsView } from "@/components/reports-view";
 import {
   Dialog,
   DialogContent,
@@ -19,31 +21,183 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { AddItemForm } from "@/components/add-item-form"
-import { useInventory, type CheckoutRecord } from "@/context/inventory-context"
-import { useRouter } from "next/navigation"
+} from "@/components/ui/dialog";
+import { AddItemForm } from "@/components/add-item-form";
+import { useRouter } from "next/navigation";
+import { useUser } from "@auth0/nextjs-auth0/client";
+
+// Utility function to get the JWT token from localStorage
+const getToken = () => {
+  return localStorage.getItem("token");
+};
+
+// Utility function to make authenticated API requests
+const fetchWithAuth = async (endpoint, token, options = {}) => {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error("Unauthorized: Invalid or revoked token");
+    }
+    throw new Error(`Failed to fetch ${endpoint}: ${response.statusText}`);
+  }
+
+  return response.json();
+};
 
 export default function InventoryDashboard() {
-  // Access inventory context to ensure it's available
-  const { inventoryItems, checkoutHistory } = useInventory()
-  const router = useRouter()
+  const router = useRouter();
+  const { user, isLoading: authLoading, error: authError } = useUser();
 
-  // Count items for dashboard stats
-  const totalItems = inventoryItems.reduce((sum, item) => sum + item.quantity, 0)
-  const lowStockItems = inventoryItems.filter((item) => item.quantity < 20).length
-  const checkedOutItems = inventoryItems.filter((item) => item.status.includes("Checked Out")).length
+  // State for fetched data
+  const [inventoryItems, setInventoryItems] = useState([]);
+  const [checkoutHistory, setCheckoutHistory] = useState([]);
+  const [stats, setStats] = useState({
+    total_items: 0,
+    low_stock: 0,
+    items_checked_out: 0,
+  });
+
+  // State for loading and error handling
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [token, setToken] = useState<string | null>(null);
+
+  // Step 1: Authenticate with Auth0 and get the JWT token from Flask
+  useEffect(() => {
+    const authenticate = async () => {
+      try {
+        // Check if Auth0 is still loading or if there's an error
+        if (authLoading) return;
+        if (authError) {
+          throw new Error("Auth0 authentication failed");
+        }
+
+        // Redirect to login if user is not authenticated
+        if (!user) {
+          router.push("/api/auth/login");
+          return;
+        }
+
+        // Get the user's email from Auth0
+        const email = user.email;
+        if (!email) {
+          throw new Error("User email not found in Auth0 profile");
+        }
+
+        // Check if a token already exists in localStorage
+        let jwtToken = getToken();
+        if (!jwtToken) {
+          // Send the email to the Flask server to get a JWT token
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/login`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ email }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to authenticate with Flask server");
+          }
+
+          const data = await response.json();
+          jwtToken = data.access_token;
+
+          if (!jwtToken) {
+            throw new Error("No JWT token received from Flask server");
+          }
+
+          // Store the JWT token in localStorage
+          localStorage.setItem("token", jwtToken);
+        }
+
+        setToken(jwtToken);
+      } catch (err) {
+        setError(err.message);
+        if (err.message.includes("Auth0") || err.message.includes("email")) {
+          router.push("/api/auth/login");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    authenticate();
+  }, [user, authLoading, authError, router]);
+
+  // Step 2: Fetch data using the JWT token
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!token) return; // Wait until the token is available
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch inventory items
+        const itemsData = await fetchWithAuth("/api/inventory-items", token);
+        setInventoryItems(itemsData);
+
+        // Fetch checkout history (inventory usage)
+        const usageData = await fetchWithAuth("/api/inventory-usage", token);
+        setCheckoutHistory(usageData);
+
+        // Fetch stats
+        const statsData = await fetchWithAuth("/api/stats", token);
+        setStats(statsData);
+      } catch (err) {
+        setError(err.message);
+        if (err.message.includes("Unauthorized")) {
+          localStorage.removeItem("token");
+          router.push("/api/auth/login");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [token, router]);
+
+  // Calculate dashboard stats
+  const totalItems = stats.total_items || 0;
+  const lowStockItems = stats.low_stock || 0;
+  const checkedOutItems = stats.items_checked_out || 0;
 
   // Count upcoming returns (due within 48 hours)
-  const currentDate = new Date()
-  const futureDate = new Date(currentDate)
-  futureDate.setHours(currentDate.getHours() + 48)
+  const currentDate = new Date();
+  const futureDate = new Date(currentDate);
+  futureDate.setHours(currentDate.getHours() + 48);
 
-  const upcomingReturns = checkoutHistory.filter((checkout: CheckoutRecord) => {
-    if (checkout.status !== "Active") return false
-    const returnDate = new Date(checkout.returnDate)
-    return returnDate <= futureDate && returnDate >= currentDate
-  }).length
+  const upcomingReturns = checkoutHistory.filter((checkout) => {
+    const returnDate = new Date(checkout.return_date || checkout.created_at);
+    return returnDate <= futureDate && returnDate >= currentDate;
+  }).length;
+
+  // Handle loading and error states
+  if (loading || authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-purple-50/50 dark:bg-purple-950/50">
+        <p className="text-purple-900 dark:text-purple-50">Loading...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-purple-50/50 dark:bg-purple-950/50">
+        <p className="text-red-500">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -62,7 +216,20 @@ export default function InventoryDashboard() {
       </div>
       <div className="flex-1 space-y-4 p-8 pt-6 bg-purple-50/50 dark:bg-purple-950/50">
         <div className="flex items-center justify-between space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight text-purple-900 dark:text-purple-50">Inventory Dashboard <a href="/api/auth/logout">Logout</a></h2>
+          <h2 className="text-3xl font-bold tracking-tight text-purple-900 dark:text-purple-50">
+            Inventory Dashboard{" "}
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                localStorage.removeItem("token");
+                window.location.href = "/api/auth/logout";
+              }}
+              className="text-purple-700 dark:text-purple-300 hover:underline"
+            >
+              Logout
+            </a>
+          </h2>
           <div className="flex items-center space-x-2">
             <Dialog>
               <DialogTrigger asChild>
@@ -185,7 +352,7 @@ export default function InventoryDashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <InventoryTable />
+                  <InventoryTable inventoryItems={inventoryItems} />
                 </CardContent>
               </Card>
               <Card className="col-span-3 border-purple-200 dark:border-purple-800">
@@ -196,7 +363,7 @@ export default function InventoryDashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <RecentActivity />
+                  <RecentActivity checkoutHistory={checkoutHistory} />
                 </CardContent>
               </Card>
             </div>
@@ -211,7 +378,7 @@ export default function InventoryDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <InventoryFullView />
+                <InventoryFullView inventoryItems={inventoryItems} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -225,7 +392,7 @@ export default function InventoryDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <CheckoutForm />
+                <CheckoutForm inventoryItems={inventoryItems} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -239,12 +406,12 @@ export default function InventoryDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ReportsView />
+                <ReportsView inventoryItems={inventoryItems} checkoutHistory={checkoutHistory} />
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </div>
     </div>
-  )
+  );
 }

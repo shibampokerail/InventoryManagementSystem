@@ -1,11 +1,12 @@
-"use client"
+// components/inventory-full-view.tsx
+"use client";
 
-import { useState } from "react"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useState } from "react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,36 +14,34 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Edit, MoreHorizontal, Trash2, ArrowUpDown, FileDown, Filter, ShoppingCart } from "lucide-react"
-import { useInventory } from "@/context/inventory-context"
+} from "@/components/ui/dropdown-menu";
+import { Edit, MoreHorizontal, Trash2, ArrowUpDown, FileDown, Filter, ShoppingCart } from "lucide-react";
 
-export function InventoryFullView() {
-  const { inventoryItems } = useInventory()
-  const [searchTerm, setSearchTerm] = useState("")
-  const [categoryFilter, setCategoryFilter] = useState("all")
-  const [statusFilter, setStatusFilter] = useState("all")
+export function InventoryFullView({ inventoryItems }) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const filteredItems = inventoryItems.filter((item) => {
     const matchesSearch =
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.id.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = categoryFilter === "all" || item.category === categoryFilter
-    const matchesStatus = statusFilter === "all" || item.status === statusFilter
+      item._id.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = categoryFilter === "all" || item.category === categoryFilter;
+    const matchesStatus = statusFilter === "all" || item.status === statusFilter;
 
-    return matchesSearch && matchesCategory && matchesStatus
-  })
+    return matchesSearch && matchesCategory && matchesStatus;
+  });
 
-  // Get unique categories for filter dropdown
-  const categories = ["all", ...Array.from(new Set(inventoryItems.map((item) => item.category)))]
-  const statuses = ["all", ...Array.from(new Set(inventoryItems.map((item) => item.status)))]
+  // Get unique categories and statuses for filter dropdowns
+  const categories = ["all", ...Array.from(new Set(inventoryItems.map((item) => item.category || "N/A")))];
+  const statuses = ["all", ...Array.from(new Set(inventoryItems.map((item) => item.status || "Unknown")))];
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col space-y-2 md:flex-row md:items-center md:justify-between md:space-y-0">
         <div className="flex flex-1 items-center space-x-2">
           <Input
-            placeholder="Search by name or ID..."
+            placeholder="Search by name of item..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-sm border-purple-200 dark:border-purple-800"
@@ -92,8 +91,7 @@ export function InventoryFullView() {
       <div className="rounded-md border border-purple-200 dark:border-purple-800">
         <Table>
           <TableHeader className="bg-purple-100 dark:bg-purple-900">
-            <TableRow>
-              <TableHead className="text-purple-900 dark:text-purple-50">ID</TableHead>
+        <TableRow>
               <TableHead className="text-purple-900 dark:text-purple-50">
                 <div className="flex items-center">
                   Item
@@ -112,10 +110,9 @@ export function InventoryFullView() {
           </TableHeader>
           <TableBody>
             {filteredItems.map((item) => (
-              <TableRow key={item.id} className="hover:bg-purple-50 dark:hover:bg-purple-900/50">
-                <TableCell className="font-medium text-purple-900 dark:text-purple-50">{item.id}</TableCell>
+              <TableRow key={item._id} className="hover:bg-purple-50 dark:hover:bg-purple-900/50">
                 <TableCell className="font-medium text-purple-900 dark:text-purple-50">{item.name}</TableCell>
-                <TableCell className="text-purple-700 dark:text-purple-300">{item.category}</TableCell>
+                <TableCell className="text-purple-700 dark:text-purple-300">{item.category || "N/A"}</TableCell>
                 <TableCell className="text-purple-900 dark:text-purple-50">{item.quantity}</TableCell>
                 <TableCell>
                   <Badge
@@ -130,13 +127,17 @@ export function InventoryFullView() {
                           : "bg-amber-100 text-amber-800 hover:bg-amber-100 dark:bg-amber-900 dark:text-amber-100"
                     }
                   >
-                    {item.status}
+                    {item.status || "Unknown"}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-purple-700 dark:text-purple-300">{item.location}</TableCell>
-                <TableCell className="text-purple-700 dark:text-purple-300">{item.lastCheckedOut || "N/A"}</TableCell>
+                <TableCell className="text-purple-700 dark:text-purple-300">
+                  {item.last_checked_out ? new Date(item.last_checked_out).toLocaleString() : "N/A"}
+                </TableCell>
                 <TableCell className="text-purple-700 dark:text-purple-300">{item.condition || "N/A"}</TableCell>
-                <TableCell className="text-purple-700 dark:text-purple-300">{item.value || "$0.00"}</TableCell>
+                <TableCell className="text-purple-700 dark:text-purple-300">
+                  {item.value ? `$${item.value.toFixed(2)}` : "$0.00"}
+                </TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -189,5 +190,5 @@ export function InventoryFullView() {
         </div>
       </div>
     </div>
-  )
+  );
 }

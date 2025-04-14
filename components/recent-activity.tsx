@@ -1,14 +1,45 @@
-"use client"
+// components/recent-activity.tsx
+"use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ArrowDownIcon, ArrowUpIcon, RefreshCw } from "lucide-react"
-import { useInventory } from "@/context/inventory-context"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ArrowDownIcon, ArrowUpIcon, RefreshCw } from "lucide-react";
 
-export function RecentActivity() {
-  const { activities } = useInventory()
+export function RecentActivity({ checkoutHistory }) {
+  // Map checkoutHistory (from database via Flask) to match the expected activity structure
+  const activities = checkoutHistory.map((record) => {
+    // Determine the action type based on the record
+    const action =
+      record.status === "returned"
+        ? "returned"
+        : record.status === "added"
+        ? "added"
+        : record.status === "updated"
+        ? "updated count"
+        : "checked out"; // Default to "checked out" for active checkouts
+
+    // Format the timestamp (using created_at from the database)
+    const timestamp = record.created_at
+      ? new Date(record.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      : "N/A";
+
+    // Mock user data (since the database might not store full user details directly)
+    const user = {
+      name: record.user_name || `User ${record.user_id || "Unknown"}`, // Use user_name if stored, else fallback
+      avatar: record.user_id ? record.user_id.slice(0, 2).toUpperCase() : "UN", // Generate initials
+    };
+
+    return {
+      id: record._id,
+      user,
+      action,
+      quantity: record.quantity || 1,
+      item: record.item_name || `Item ${record.item_id || "Unknown"}`, // Use item_name if stored, else fallback
+      timestamp,
+    };
+  });
 
   // Show only the first 5 activities
-  const displayActivities = activities.slice(0, 5)
+  const displayActivities = activities.slice(0, 5);
 
   return (
     <div className="space-y-8">
@@ -36,5 +67,5 @@ export function RecentActivity() {
         </div>
       ))}
     </div>
-  )
+  );
 }
