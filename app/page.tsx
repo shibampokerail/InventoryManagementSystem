@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { InventoryTable } from "@/components/inventory-table";
 import { RecentActivity } from "@/components/recent-activity";
-import { Search } from "@/components/search";
+import { DailyLogsForm } from "@/components/daily-logs-form";
 import { UserNav } from "@/components/user-nav";
 import { MainNav } from "@/components/main-nav";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,6 +14,7 @@ import { PlusCircle, AlertTriangle, CheckCircle2, Package } from "lucide-react";
 import { InventoryFullView } from "@/components/inventory-full-view";
 import { CheckoutForm } from "@/components/checkout-form";
 import { ReportsView } from "@/components/reports-view";
+import { io, Socket } from "socket.io-client";
 import {
   Dialog,
   DialogContent,
@@ -26,17 +27,31 @@ import { AddItemForm } from "@/components/add-item-form";
 import { useRouter } from "next/navigation";
 import { useUser } from "@auth0/nextjs-auth0/client";
 
+interface InventoryItem {
+  _id: string;
+  name: string;
+  category: string;
+  quantity: number;
+  minQuantity: number;
+  unit: string;
+  location: string;
+  status: string;
+  condition: string;
+  description: string;
+}
+
+
 // Utility function to get the JWT token from localStorage
 const getToken = () => {
   return localStorage.getItem("token");
 };
 
 // Utility function to make authenticated API requests
-const fetchWithAuth = async (endpoint, token, options = {}) => {
+const fetchWithAuth = async (endpoint: string, token: string, options: RequestInit = {}) => {
   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
     ...options,
     headers: {
-      "Authorization": `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
       ...options.headers,
     },
@@ -46,7 +61,7 @@ const fetchWithAuth = async (endpoint, token, options = {}) => {
     if (response.status === 401) {
       throw new Error("Unauthorized: Invalid or revoked token");
     }
-    throw new Error(`Failed to fetch ${endpoint}: ${response.statusText}`);
+    throw new Error(`Failed to fetch data ${endpoint}: ${response.statusText}`);
   }
 
   return response.json();
@@ -57,7 +72,7 @@ export default function InventoryDashboard() {
   const { user, isLoading: authLoading, error: authError } = useUser();
 
   // State for fetched data
-  const [inventoryItems, setInventoryItems] = useState([]);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [checkoutHistory, setCheckoutHistory] = useState([]);
   const [stats, setStats] = useState({
     total_items: 0,
@@ -67,8 +82,9 @@ export default function InventoryDashboard() {
 
   // State for loading and error handling
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
 
   // Step 1: Authenticate with Auth0 and get the JWT token from Flask
   useEffect(() => {
@@ -121,8 +137,28 @@ export default function InventoryDashboard() {
 
         setToken(jwtToken);
       } catch (err) {
-        setError(err.message);
-        if (err.message.includes("Auth0") || err.message.includes("email")) {
+        if (err instanceof Error) {
+          if (err instanceof Error) {
+            if (err instanceof Error) {
+              if (err instanceof Error) {
+                if (err instanceof Error) {
+                  setError(err.message);
+                } else {
+                  setError("An unknown error occurred");
+                }
+              } else {
+                setError("An unknown error occurred");
+              }
+            } else {
+              setError("An unknown error occurred");
+            }
+          } else {
+            setError("An unknown error occurred");
+          }
+        } else {
+          setError("An unknown error occurred");
+        }
+        if (err instanceof Error && (err.message.includes("Auth0") || err.message.includes("email"))) {
           router.push("/api/auth/login");
         }
       } finally {
@@ -154,8 +190,10 @@ export default function InventoryDashboard() {
         const statsData = await fetchWithAuth("/api/stats", token);
         setStats(statsData);
       } catch (err) {
-        setError(err.message);
-        if (err.message.includes("Unauthorized")) {
+        if (err instanceof Error) {
+          setError(err.message);
+        }
+        if (err instanceof Error && err.message.includes("Unauthorized")) {
           localStorage.removeItem("token");
           router.push("/api/auth/login");
         }
@@ -167,38 +205,121 @@ export default function InventoryDashboard() {
     fetchData();
   }, [token, router]);
 
-  // Calculate dashboard stats
-  const totalItems = stats.total_items || 0;
-  const lowStockItems = stats.low_stock || 0;
-  const checkedOutItems = stats.items_checked_out || 0;
+ // Step 3: Set up WebSocket connection for real-time updates
+ useEffect(() => {
+  if (!token) return;
 
-  // Count upcoming returns (due within 48 hours)
-  const currentDate = new Date();
-  const futureDate = new Date(currentDate);
-  futureDate.setHours(currentDate.getHours() + 48);
+  const socketInstance = io(`${process.env.NEXT_PUBLIC_API_URL}/realtime`, {
+    path: "/socket.io",
+    transports: ["websocket"],
+    query: { token },
+    reconnection: true,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 1000,
+  });
 
-  const upcomingReturns = checkoutHistory.filter((checkout) => {
+  socketInstance.on("connect", () => {
+    console.log("Connected to WebSocket server");
+  });
+
+  socketInstance.on("connection_status", (data) => {
+    console.log("Connection status:", data);
+  });
+
+  // Listen for inventory_items insert events
+  socketInstance.on("inventory_items_insert", (newItem: InventoryItem) => {
+    console.log("New inventory item:", newItem);
+    setInventoryItems((prev) => {
+      if (prev.some((item) => item._id === newItem._id)) return prev;
+      return [...prev, newItem];
+    });
+  });
+
+  // Listen for inventory_items update events
+  socketInstance.on("inventory_items_update", (updatedItem: InventoryItem) => {
+    console.log("Updated inventory item:", updatedItem);
+    setInventoryItems((prev) =>
+      prev.map((item) => (item._id === updatedItem._id ? updatedItem : item))
+    );
+  });
+
+  // Listen for inventory_items delete events
+  socketInstance.on("inventory_items_delete", (data: { _id: string }) => {
+    console.log("Deleted inventory item:", data._id);
+    setInventoryItems((prev) => prev.filter((item) => item._id !== data._id));
+  });
+
+  socketInstance.on("disconnect", () => {
+    console.log("Disconnected from WebSocket server");
+  });
+
+  socketInstance.on("connect_error", (err) => {
+    console.error("WebSocket connection error:", err.message);
+    if (err.message.includes("Invalid token")) {
+      console.log("Invalid token detected, redirecting to login...");
+      localStorage.removeItem("token");
+      router.push("/api/auth/login");
+    } else {
+      setError("Failed to connect to real-time updates. Please refresh the page.");
+    }
+  });
+
+  setSocket(socketInstance);
+
+  // Cleanup on unmount
+  return () => {
+    socketInstance.disconnect();
+  };
+}, [token, router]);
+
+// Step 4: Update stats whenever inventoryItems changes
+useEffect(() => {
+  const totalItems = inventoryItems.length;
+  const lowStock = inventoryItems.filter((item) => item.quantity < item.minQuantity).length;
+  const itemsCheckedOut = inventoryItems.reduce(
+    (sum, item) => sum + (item.checked_out || 0),
+    0
+  );
+  setStats({
+    total_items: totalItems,
+    low_stock: lowStock,
+    items_checked_out: itemsCheckedOut,
+  });
+}, [inventoryItems]);
+
+// Calculate dashboard stats
+const totalItems = stats.total_items || 0;
+const lowStockItems = stats.low_stock || 0;
+const checkedOutItems = stats.items_checked_out || 0;
+
+// Count upcoming returns (due within 48 hours)
+const currentDate = new Date();
+const futureDate = new Date(currentDate);
+futureDate.setHours(currentDate.getHours() + 48);
+
+const upcomingReturns = checkoutHistory.filter(
+  (checkout: { return_date?: string; created_at: string }) => {
     const returnDate = new Date(checkout.return_date || checkout.created_at);
     return returnDate <= futureDate && returnDate >= currentDate;
-  }).length;
-
-  // Handle loading and error states
-  if (loading || authLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-purple-50/50 dark:bg-purple-950/50">
-        <p className="text-purple-900 dark:text-purple-50">Loading...</p>
-      </div>
-    );
   }
+).length;
 
-  if (error) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-purple-50/50 dark:bg-purple-950/50">
-        <p className="text-red-500">{error}</p>
-      </div>
-    );
-  }
+// Handle loading and error states
+if (loading || authLoading) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-purple-50/50 dark:bg-purple-950/50">
+      <p className="text-purple-900 dark:text-purple-50">Loading...</p>
+    </div>
+  );
+}
 
+if (error) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-purple-50/50 dark:bg-purple-950/50">
+      <p className="text-red-500">{error}</p>
+    </div>
+  );
+}
   return (
     <div className="flex min-h-screen flex-col">
       <div className="border-b bg-purple-50 dark:bg-purple-950">
@@ -209,7 +330,6 @@ export default function InventoryDashboard() {
           </div>
           <MainNav className="mx-6" />
           <div className="ml-auto flex items-center space-x-4">
-            <Search />
             <UserNav />
           </div>
         </div>
@@ -240,7 +360,9 @@ export default function InventoryDashboard() {
               </DialogTrigger>
               <DialogContent className="sm:max-w-[600px] border-purple-200 dark:border-purple-800">
                 <DialogHeader>
-                  <DialogTitle className="text-purple-900 dark:text-purple-50">Add New Inventory Item</DialogTitle>
+                  <DialogTitle className="text-purple-900 dark:text-purple-50">
+                    Add New Inventory Item
+                  </DialogTitle>
                   <DialogDescription className="text-purple-700 dark:text-purple-300">
                     Fill in the details to add a new item to your inventory.
                   </DialogDescription>
@@ -252,16 +374,34 @@ export default function InventoryDashboard() {
         </div>
         <Tabs defaultValue="overview" className="space-y-4">
           <TabsList className="bg-purple-100 dark:bg-purple-900">
-            <TabsTrigger value="overview" className="data-[state=active]:bg-purple-700 data-[state=active]:text-white">
+            <TabsTrigger
+              value="overview"
+              className="data-[state=active]:bg-purple-700 data-[state=active]:text-white dark:text-purple-100 dark:data-[state=inactive]:text-purple-300"
+            >
               Overview
             </TabsTrigger>
-            <TabsTrigger value="inventory" className="data-[state=active]:bg-purple-700 data-[state=active]:text-white">
+            <TabsTrigger
+              value="daily-logs"
+              className="data-[state=active]:bg-purple-700 data-[state=active]:text-white dark:text-purple-100 dark:data-[state=inactive]:text-purple-300"
+            >
+              Daily Logs
+            </TabsTrigger>
+            <TabsTrigger
+              value="inventory"
+              className="data-[state=active]:bg-purple-700 data-[state=active]:text-white dark:text-purple-100 dark:data-[state=inactive]:text-purple-300"
+            >
               Inventory
             </TabsTrigger>
-            <TabsTrigger value="checkout" className="data-[state=active]:bg-purple-700 data-[state=active]:text-white">
+            <TabsTrigger
+              value="checkout"
+              className="data-[state=active]:bg-purple-700 data-[state=active]:text-white dark:text-purple-100 dark:data-[state=inactive]:text-purple-300"
+            >
               Check Out
             </TabsTrigger>
-            <TabsTrigger value="reports" className="data-[state=active]:bg-purple-700 data-[state=active]:text-white">
+            <TabsTrigger
+              value="reports"
+              className="data-[state=active]:bg-purple-700 data-[state=active]:text-white dark:text-purple-100 dark:data-[state=inactive]:text-purple-300"
+            >
               Reports
             </TabsTrigger>
           </TabsList>
@@ -367,6 +507,20 @@ export default function InventoryDashboard() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="daily-logs" className="space-y-4">
+            <Card className="border-purple-200 dark:border-purple-800">
+              <CardHeader>
+                <CardTitle className="text-purple-900 dark:text-purple-50">Daily Supply Logs</CardTitle>
+                <CardDescription className="text-purple-700 dark:text-purple-300">
+                  Track the consumption of supplies across different locations
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <DailyLogsForm />
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="inventory" className="space-y-4">

@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MainNav } from "@/components/main-nav"
 import { UserNav } from "@/components/user-nav"
-import { Search } from "@/components/search"
 import {
   Package,
   Bell,
@@ -170,7 +169,6 @@ export default function NotificationsPage() {
           </div>
           <MainNav className="mx-6" />
           <div className="ml-auto flex items-center space-x-4">
-            <Search />
             <UserNav />
           </div>
         </div>
@@ -201,19 +199,19 @@ export default function NotificationsPage() {
         <Tabs defaultValue="all" className="space-y-4" onValueChange={setActiveTab}>
           <div className="flex justify-between items-center">
             <TabsList className="bg-purple-100 dark:bg-purple-900">
-              <TabsTrigger value="all" className="data-[state=active]:bg-purple-700 data-[state=active]:text-white">
+              <TabsTrigger value="all" className="data-[state=active]:bg-purple-700 data-[state=active]:text-white dark:text-purple-100 dark:data-[state=inactive]:text-purple-300">
                 <Bell className="mr-2 h-4 w-4" />
                 All
               </TabsTrigger>
-              <TabsTrigger value="unread" className="data-[state=active]:bg-purple-700 data-[state=active]:text-white">
+              <TabsTrigger value="unread" className="data-[state=active]:bg-purple-700 data-[state=active]:text-white dark:text-purple-100 dark:data-[state=inactive]:text-purple-300">
                 <Badge className="mr-2 bg-red-500">{unreadCount}</Badge>
                 Unread
               </TabsTrigger>
-              <TabsTrigger value="alerts" className="data-[state=active]:bg-purple-700 data-[state=active]:text-white">
+              <TabsTrigger value="alerts" className="data-[state=active]:bg-purple-700 data-[state=active]:text-white dark:text-purple-100 dark:data-[state=inactive]:text-purple-300">
                 <AlertCircle className="mr-2 h-4 w-4" />
                 Alerts
               </TabsTrigger>
-              <TabsTrigger value="info" className="data-[state=active]:bg-purple-700 data-[state=active]:text-white">
+              <TabsTrigger value="info" className="data-[state=active]:bg-purple-700 data-[state=active]:text-white dark:text-purple-100 dark:data-[state=inactive]:text-purple-300">
                 <Info className="mr-2 h-4 w-4" />
                 Information
               </TabsTrigger>

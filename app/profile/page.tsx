@@ -14,7 +14,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { MainNav } from "@/components/main-nav"
 import { UserNav } from "@/components/user-nav"
-import { Search } from "@/components/search"
 import { Package, User, Shield, Clock, Upload, Save, Eye, EyeOff } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
@@ -105,7 +104,6 @@ export default function ProfilePage() {
           </div>
           <MainNav className="mx-6" />
           <div className="ml-auto flex items-center space-x-4">
-            <Search />
             <UserNav />
           </div>
         </div>
@@ -130,15 +128,15 @@ export default function ProfilePage() {
 
         <Tabs defaultValue="personal" className="space-y-4">
           <TabsList className="bg-purple-100 dark:bg-purple-900">
-            <TabsTrigger value="personal" className="data-[state=active]:bg-purple-700 data-[state=active]:text-white">
+            <TabsTrigger value="personal" className="data-[state=active]:bg-purple-700 data-[state=active]:text-white dark:text-purple-100 dark:data-[state=inactive]:text-purple-300">
               <User className="mr-2 h-4 w-4" />
               Personal Information
             </TabsTrigger>
-            <TabsTrigger value="security" className="data-[state=active]:bg-purple-700 data-[state=active]:text-white">
+            <TabsTrigger value="security" className="data-[state=active]:bg-purple-700 data-[state=active]:text-white dark:text-purple-100 dark:data-[state=inactive]:text-purple-300">
               <Shield className="mr-2 h-4 w-4" />
               Security
             </TabsTrigger>
-            <TabsTrigger value="activity" className="data-[state=active]:bg-purple-700 data-[state=active]:text-white">
+            <TabsTrigger value="activity" className="data-[state=active]:bg-purple-700 data-[state=active]:text-white dark:text-purple-100 dark:data-[state=inactive]:text-purple-300">
               <Clock className="mr-2 h-4 w-4" />
               Activity
             </TabsTrigger>

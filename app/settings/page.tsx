@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { MainNav } from "@/components/main-nav"
 import { UserNav } from "@/components/user-nav"
-import { Search } from "@/components/search"
+
 import { Package, SettingsIcon, Moon, Sun, BellRing, Database, Save, Trash2 } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -41,11 +41,10 @@ export default function SettingsPage() {
           </div>
           <MainNav className="mx-6" />
           <div className="ml-auto flex items-center space-x-4">
-            <Search />
             <UserNav />
           </div>
         </div>
-      </div>
+      </div> 
       <div className="flex-1 space-y-4 p-8 pt-6 bg-purple-50/50 dark:bg-purple-950/50">
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight text-purple-900 dark:text-purple-50">Settings</h2>
@@ -63,25 +62,25 @@ export default function SettingsPage() {
 
         <Tabs defaultValue="general" className="space-y-4">
           <TabsList className="bg-purple-100 dark:bg-purple-900">
-            <TabsTrigger value="general" className="data-[state=active]:bg-purple-700 data-[state=active]:text-white">
+            <TabsTrigger value="general" className="data-[state=active]:bg-purple-700 data-[state=active]:text-white dark:text-purple-100 dark:data-[state=inactive]:text-purple-300">
               <SettingsIcon className="mr-2 h-4 w-4" />
               General
             </TabsTrigger>
             <TabsTrigger
               value="appearance"
-              className="data-[state=active]:bg-purple-700 data-[state=active]:text-white"
+              className="data-[state=active]:bg-purple-700 data-[state=active]:text-white dark:text-purple-100 dark:data-[state=inactive]:text-purple-300"
             >
               <Sun className="mr-2 h-4 w-4" />
               Appearance
             </TabsTrigger>
             <TabsTrigger
               value="notifications"
-              className="data-[state=active]:bg-purple-700 data-[state=active]:text-white"
+              className="data-[state=active]:bg-purple-700 data-[state=active]:text-white dark:text-purple-100 dark:data-[state=inactive]:text-purple-300"
             >
               <BellRing className="mr-2 h-4 w-4" />
               Notifications
             </TabsTrigger>
-            <TabsTrigger value="advanced" className="data-[state=active]:bg-purple-700 data-[state=active]:text-white">
+            <TabsTrigger value="advanced" className="data-[state=active]:bg-purple-700 data-[state=active]:text-white dark:text-purple-100 dark:data-[state=inactive]:text-purple-300">
               <Database className="mr-2 h-4 w-4" />
               Advanced
             </TabsTrigger>

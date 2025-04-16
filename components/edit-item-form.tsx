@@ -1,4 +1,3 @@
-// components/add-item-form.tsx
 "use client";
 
 import type React from "react";
@@ -26,27 +25,43 @@ const locations = [
 const conditions = ["OK", "DAMAGED", "LOST", "STOLEN", "OTHER (Add your own)"];
 const statuses = ["AVAILABLE", "LOW STOCK"];
 const units = ["pieces", "boxes", "packs", "rolls", "bags", "cases", "other (add your own)"];
+interface InventoryItem {
+    _id: string;
+    name: string;
+    category: string;
+    quantity: number;
+    minQuantity: number;
+    unit: string;
+    location: string;
+    status: string;
+    condition: string;
+    description: string;
+  }
+interface EditItemFormProps {
+  item: InventoryItem;
+  onSuccess?: () => void;
+}
 
-export function AddItemForm() {
+export function EditItemForm({ item, onSuccess }: EditItemFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    name: "",
-    category: "",
-    customCategory: "",
-    quantity: "",
-    minQuantity: "",
-    unit: "pieces",
-    customUnit: "",
-    location: "",
-    customLocation: "",
-    status: "AVAILABLE",
-    condition: "OK",
-    customCondition: "",
-    description: "",
+    name: item.name,
+    category: categories.includes(item.category) ? item.category : "Other",
+    customCategory: categories.includes(item.category) ? "" : item.category,
+    quantity: item.quantity.toString(),
+    minQuantity: item.minQuantity.toString(),
+    unit: units.includes(item.unit) ? item.unit : "other (add your own)",
+    customUnit: units.includes(item.unit) ? "" : item.unit,
+    location: locations.includes(item.location) ? item.location : "Other (Add your own)",
+    customLocation: locations.includes(item.location) ? "" : item.location,
+    status: item.status,
+    condition: conditions.includes(item.condition) ? item.condition : "OTHER (Add your own)",
+    customCondition: conditions.includes(item.condition) ? "" : item.condition,
+    description: item.description || "",
   });
 
   const getToken = () => localStorage.getItem("token");
@@ -126,7 +141,7 @@ export function AddItemForm() {
     }
 
     try {
-      const newItem = {
+      const updatedItem = {
         name: formData.name,
         category: formData.category === "Other" ? formData.customCategory : formData.category,
         quantity,
@@ -138,36 +153,23 @@ export function AddItemForm() {
         description: formData.description || undefined,
       };
 
-      const response = await fetchWithAuth("/api/inventory-items", token, {
-        method: "POST",
-        body: JSON.stringify(newItem),
+      const response = await fetchWithAuth(`/api/inventory-items/${item._id}`, token, {
+        method: "PUT",
+        body: JSON.stringify(updatedItem),
       });
 
       toast({
-        title: "Item Added",
-        description: `${formData.name} has been added to inventory with ID: ${response._id}`,
+        title: "Item Updated",
+        description: `${formData.name} has been updated successfully.`,
         variant: "success",
       });
 
-      setFormData({
-        name: "",
-        category: "",
-        customCategory: "",
-        quantity: "",
-        minQuantity: "",
-        unit: "pieces",
-        customUnit: "",
-        location: "",
-        customLocation: "",
-        status: "AVAILABLE",
-        condition: "OK",
-        customCondition: "",
-        description: "",
-      });
+      if (onSuccess) onSuccess();
+
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to add item. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to update item. Please try again.",
         variant: "destructive",
       });
       if (error instanceof Error && error.message.includes("Unauthorized")) {
@@ -176,8 +178,6 @@ export function AddItemForm() {
       }
     } finally {
       setIsSubmitting(false);
-      const event = new KeyboardEvent("keydown", { key: "Escape", bubbles: true });
-      document.dispatchEvent(event);
     }
   };
 
@@ -217,13 +217,13 @@ export function AddItemForm() {
 
         <div className="space-y-2">
           <Label htmlFor="quantity" className="text-purple-900 dark:text-purple-50">Quantity <span className="text-red-500">*</span></Label>
-          <Input id="quantity" name="quantity" type="number" min="0" value={formData.quantity} onChange={handleInputChange}  placeholder="e.g., 10"
+          <Input id="quantity" name="quantity" type="number" min="0" value={formData.quantity} onChange={handleInputChange} placeholder="e.g., 10"
             className="border-purple-200 dark:border-purple-800" required />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="minQuantity" className="text-purple-900 dark:text-purple-50">Minimum Quantity <span className="text-red-500">*</span></Label>
-          <Input id="minQuantity" name="minQuantity" type="number" min="0" value={formData.minQuantity} onChange={handleInputChange}  placeholder="e.g., 5"
+          <Input id="minQuantity" name="minQuantity" type="number" min="0" value={formData.minQuantity} onChange={handleInputChange} placeholder="e.g., 5"
             className="border-purple-200 dark:border-purple-800" required />
         </div>
 
@@ -325,19 +325,14 @@ export function AddItemForm() {
           type="button"
           variant="outline"
           onClick={() => {
-            // Close the dialog by simulating an Escape key press
-            const event = new KeyboardEvent("keydown", {
-              key: "Escape",
-              bubbles: true,
-            });
-            document.dispatchEvent(event);
+            if (onSuccess) onSuccess();
           }}
           className="border-purple-200 text-purple-700 hover:bg-purple-100 dark:border-purple-800 dark:text-purple-300 dark:hover:bg-purple-900"
         >
           Cancel
         </Button>
         <Button type="submit" className="bg-purple-700 hover:bg-purple-800 text-white" disabled={isSubmitting}>
-          {isSubmitting ? "Adding..." : "Add Item"}
+          {isSubmitting ? "Updating..." : "Update Item"}
         </Button>
       </DialogFooter>
     </form>
