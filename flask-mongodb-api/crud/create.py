@@ -45,15 +45,35 @@ def create_vendor():
 def create_inventory_item():
     db = connect_to_mongo()
     data = request.get_json()
+
+    # Define required fields based on the schema
+    required_fields = ['name', 'category', 'quantity', 'minQuantity', 'unit', 'location', 'status', 'condition']
     if not data or not all(key in data for key in ['name', 'quantity', 'location']):
         return jsonify({'error': 'Missing required fields: name, quantity, location'}), 400
 
+    # Create new item with all fields (required and optional)
     new_item = {
-        'name': data['name'],
-        'quantity': int(data['quantity']),
-        'location': data['location'],
+        'name': data.get('name'),
+        'category': data.get('category', 'Uncategorized'),  # Default if not provided
+        'quantity': int(data.get('quantity')),
+        'minQuantity': int(data.get('minQuantity', 0)),  # Default to 0 if not provided
+        'unit': data.get('unit', 'pieces'),  # Default to 'pieces' if not provided
+        'location': data.get('location'),
+        'status': data.get('status', 'AVAILABLE'),  # Default to 'AVAILABLE' if not provided
+        'condition': data.get('condition', 'OK'),  # Default to 'OK' if not provided
         'created_at': datetime.utcnow()
     }
+
+    # Validate required fields
+    missing_fields = [field for field in required_fields if not new_item[field]]
+    if missing_fields:
+        return jsonify({'error': f'Missing required fields: {", ".join(missing_fields)}'}), 400
+
+    # Validate quantity and minQuantity to be non-negative
+    if new_item['quantity'] < 0 or new_item['minQuantity'] < 0:
+        return jsonify({'error': 'Quantity and minQuantity must be non-negative'}), 400
+
+    # Insert into the database
     result = db.InventoryItems.insert_one(new_item)
     new_item['_id'] = str(result.inserted_id)
     return jsonify(new_item), 201

@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_jwt_extended import JWTManager
+from flask_cors import CORS
 import os
 from dotenv import load_dotenv
 from crud.create import (
@@ -21,7 +22,7 @@ from crud.delete import (
 )
 from crud.utils import login, logout, get_stats
 app = Flask(__name__)
-
+CORS(app, resources={r"/api/*": {"origins": "http://192.168.0.40:3006"}})
 # Load environment variables
 load_dotenv()
 SECRET_KEY = os.getenv('SECRET_KEY') 

@@ -51,13 +51,26 @@ def update_inventory_item(id):
     if not data:
         return jsonify({'error': 'No data provided'}), 400
 
-    update_data = {k: v for k, v in data.items() if k in ['name', 'quantity', 'location']}
+    # Define fields that can be updated (excluding created_at)
+    updatable_fields = ['name', 'category', 'quantity', 'minQuantity', 'unit', 'location', 'status', 'condition']
+    update_data = {k: v for k, v in data.items() if k in updatable_fields}
     if not update_data:
         return jsonify({'error': 'No valid fields to update'}), 400
 
+    # Type conversion and validation
     if 'quantity' in update_data:
         update_data['quantity'] = int(update_data['quantity'])
+        if update_data['quantity'] < 0:
+            return jsonify({'error': 'Quantity must be non-negative'}), 400
+    if 'minQuantity' in update_data:
+        update_data['minQuantity'] = int(update_data['minQuantity'])
+        if update_data['minQuantity'] < 0:
+            return jsonify({'error': 'minQuantity must be non-negative'}), 400
+
+    # Add updated_at timestamp
     update_data['updated_at'] = datetime.utcnow()
+
+    # Update the item in the database
     result = db.InventoryItems.update_one({'_id': ObjectId(id)}, {'$set': update_data})
     if result.matched_count == 0:
         return jsonify({'error': 'Inventory item not found'}), 404
