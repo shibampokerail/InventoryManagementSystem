@@ -6,7 +6,9 @@ import os
 from dotenv import load_dotenv
 from functools import wraps
 from datetime import datetime
-
+import threading
+import time
+from flask_socketio import SocketIO
 # Load environment variables
 load_dotenv()
 MONGO_URI = os.getenv('MONGO_URI')
@@ -28,6 +30,84 @@ def connect_to_mongo():
             print(f"Error connecting to MongoDB: {e}")
             raise
     return db
+
+# Helper function to convert datetime objects to ISO strings
+def convert_to_json_serializable(obj):
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    elif isinstance(obj, dict):
+        return {k: convert_to_json_serializable(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_to_json_serializable(item) for item in obj]
+    return obj
+
+# Define all collections to watch
+def get_collections():
+    db = connect_to_mongo()
+    return {
+"users": db.Users,
+        "vendors": db.Vendors,
+        "inventory_items": db.InventoryItems,
+        "orders": db.Orders,
+        "vendor_items": db.VendorItems,
+        "notifications": db.Notifications,
+        "logs": db.Logs,
+        "inventory_usage": db.InventoryUsage,
+        "slack_management": db.SlackManagement
+    }
+
+# Function to watch a specific collection and broadcast changes
+def watch_collection(collection_name, collection, socketio):
+    while True:
+        try:
+            print(f"Opening Change Stream for {collection_name}...")
+            with collection.watch(full_document='updateLookup') as stream:
+                print(f"Change Stream opened for {collection_name}")
+                for change in stream:
+                    print(f"Change detected in {collection_name}: {change}")
+                    operation = change["operationType"]
+                    document_id = str(change["documentKey"]["_id"]) if "documentKey" in change else None
+
+                    if operation == "insert":
+                        new_doc = change["fullDocument"]
+                        new_doc["_id"] = str(new_doc["_id"])
+                        new_doc = convert_to_json_serializable(new_doc)
+                        print(f"Emitting insert event for {collection_name}: {new_doc}")
+                        socketio.emit(f"{collection_name}_insert", new_doc, namespace="/realtime")
+                    elif operation == "update":
+                        updated_doc = None
+                        if "fullDocument" in change:
+                            updated_doc = change["fullDocument"]
+                            updated_doc["_id"] = str(updated_doc["_id"])
+                        else:
+                            # Fetch the document manually if fullDocument is missing
+                            print(f"No fullDocument in update change for {collection_name}, fetching manually...")
+                            updated_doc = collection.find_one({"_id": ObjectId(document_id)})
+                            if updated_doc:
+                                updated_doc["_id"] = str(updated_doc["_id"])
+                            else:
+                                print(f"Document {document_id} not found after update, skipping emit.")
+                                continue
+
+                        updated_doc = convert_to_json_serializable(updated_doc)
+                        print(f"Emitting update event for {collection_name}: {updated_doc}")
+                        socketio.emit(f"{collection_name}_update", updated_doc, namespace="/realtime")
+                    elif operation == "delete":
+                        print(f"Emitting delete event for {collection_name}: {document_id}")
+                        socketio.emit(f"{collection_name}_delete", {"_id": document_id}, namespace="/realtime")
+                    else:
+                        print(f"Unhandled operation type {operation} in {collection_name}: {change}")
+        except Exception as e:
+            print(f"Error watching {collection_name}: {e}. Retrying in 5 seconds...")
+            time.sleep(5)
+
+# Start watching all collections in separate threads
+def start_watching_collections(socketio: SocketIO):
+    collections = get_collections()
+    for name, collection in collections.items():
+        print(f"Starting to watch collection: {name}")
+        socketio.start_background_task(watch_collection, name, collection, socketio)
+
 
 # NEW: Decorator to allow API key or JWT authentication
 def api_key_or_jwt_required():

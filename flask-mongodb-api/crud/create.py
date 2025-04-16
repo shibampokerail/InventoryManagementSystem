@@ -61,7 +61,6 @@ def create_inventory_item():
         'location': data.get('location'),
         'status': data.get('status', 'AVAILABLE'),  # Default to 'AVAILABLE' if not provided
         'condition': data.get('condition', 'OK'),  # Default to 'OK' if not provided
-        'created_at': datetime.utcnow()
     }
 
     # Validate required fields

@@ -1,8 +1,12 @@
-from flask import Flask
-from flask_jwt_extended import JWTManager
+import eventlet
+eventlet.monkey_patch()
+from flask import Flask, request
+from flask_jwt_extended import JWTManager, decode_token
 from flask_cors import CORS
 import os
 from dotenv import load_dotenv
+from flask_socketio import SocketIO, emit, ConnectionRefusedError
+
 from crud.create import (
     create_user, create_vendor, create_inventory_item, create_order,
     create_vendor_item, create_notification, create_log, create_inventory_usage, create_slack_management
@@ -20,15 +24,46 @@ from crud.delete import (
     delete_user, delete_vendor, delete_inventory_item, delete_order,
     delete_vendor_item, delete_notification, delete_log, delete_inventory_usage
 )
-from crud.utils import login, logout, get_stats
+from crud.utils import login, logout, get_stats, start_watching_collections
+
+
+
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": "http://192.168.0.40:3006"}})
+CORS(app, resources={r"/api/*": {"origins": ["http://192.168.0.40:3006", "http://localhost:3006"]}})
 # Load environment variables
 load_dotenv()
 SECRET_KEY = os.getenv('SECRET_KEY') 
 # JWT Configuration
 app.config['JWT_SECRET_KEY'] = SECRET_KEY
+
+# Initialize SocketIO with eventlet
+socketio = SocketIO(app, async_mode="eventlet", cors_allowed_origins=["http://192.168.0.40:3006", "http://localhost:3006"])
 jwt = JWTManager(app)
+
+# Start watching collections for real-time updates
+start_watching_collections(socketio)
+
+# WebSocket connection handlers
+@socketio.on("connect", namespace="/realtime")
+def handle_connect():
+    token = request.args.get("token")
+    if not token:
+        print("WebSocket connection rejected: No token provided")
+        raise ConnectionRefusedError("No token provided")
+    try:
+        decode_token(token)
+        print("Client connected to /realtime namespace")
+        emit("connection_status", {"status": "connected"}, namespace="/realtime")
+    except Exception as e:
+        print(f"WebSocket connection rejected: Invalid token - {str(e)}")
+        raise ConnectionRefusedError(f"Invalid token: {str(e)}")
+
+@socketio.on("disconnect", namespace="/realtime")
+def handle_disconnect():
+    print("Client disconnected from /realtime namespace")
+
+
+
 
 app.route('/api/login', methods=['POST'])(login)
 
@@ -97,4 +132,4 @@ app.route('/api/slack-management', methods=['GET'])(get_slack_management)
 app.route('/api/slack-management', methods=['PUT'])(update_slack_management)
 
 if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0', port=5001) 
+    socketio.run(app, debug=False, host='0.0.0.0', port=5001) 
