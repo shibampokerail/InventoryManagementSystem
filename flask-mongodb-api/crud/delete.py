@@ -1,4 +1,4 @@
-from flask import jsonify
+from flask import jsonify, request
 from flask_jwt_extended import jwt_required
 from crud.utils import connect_to_mongo, require_role, api_key_or_jwt_required
 from bson.objectid import ObjectId
@@ -50,12 +50,22 @@ def delete_vendor_item(id):
 
 # Delete a Notification
 @api_key_or_jwt_required()
-def delete_notification(id):
+def delete_notifications():
     db = connect_to_mongo()
-    result = db.Notifications.delete_one({'_id': ObjectId(id)})
-    if result.deleted_count == 0:
-        return jsonify({'error': 'Notification not found'}), 404
-    return jsonify({'message': 'Notification deleted successfully'}), 200
+    data = request.get_json()
+    notification_ids = data.get('ids', [])
+    if not notification_ids:
+        return jsonify({'error': 'No notification IDs provided'}), 400
+
+    try:
+        # Convert string IDs to ObjectId
+        object_ids = [ObjectId(id) for id in notification_ids]
+        result = db.Notifications.delete_many({'_id': {'$in': object_ids}})
+        if result.deleted_count == 0:
+            return jsonify({'error': 'No notifications found'}), 404
+        return jsonify({'message': f'Deleted {result.deleted_count} notifications'}), 200
+    except Exception as e:
+        return jsonify({'error': 'Failed to delete notifications', 'details': str(e)}), 500
 
 # Delete a Log
 @api_key_or_jwt_required()

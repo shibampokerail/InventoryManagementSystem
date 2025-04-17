@@ -6,7 +6,7 @@ import os
 from dotenv import load_dotenv
 from functools import wraps
 from datetime import datetime
-import threading
+from datetime import timedelta
 import time
 from flask_socketio import SocketIO
 # Load environment variables
@@ -31,9 +31,11 @@ def connect_to_mongo():
             raise
     return db
 
-# Helper function to convert datetime objects to ISO strings
+# Helper function to convert non-JSON-serializable objects to JSON-serializable formats
 def convert_to_json_serializable(obj):
-    if isinstance(obj, datetime):
+    if isinstance(obj, ObjectId):
+        return str(obj)
+    elif isinstance(obj, datetime):
         return obj.isoformat()
     elif isinstance(obj, dict):
         return {k: convert_to_json_serializable(v) for k, v in obj.items()}
@@ -176,7 +178,10 @@ def login():
         return jsonify({'error': 'User with this email not found in database'}), 403
 
     # Issue a Flask-JWT-Extended token with the user's _id
-    access_token = create_access_token(identity=str(user['_id']))
+    # Set the token to expire in 6 hour (you can change this as needed)
+    expires = timedelta(hours=6)
+
+    access_token = create_access_token(identity=str(user['_id']), expires_delta=expires)
     return jsonify({'access_token': access_token}), 200
 
 # Logout endpoint

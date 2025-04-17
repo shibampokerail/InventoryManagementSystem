@@ -14,15 +14,16 @@ from crud.create import (
 from crud.read import (
     get_users, get_vendors, get_orders, get_vendor_items,
     get_notifications, get_logs, get_inventory_usage, get_inventory_items, get_user,
-    get_vendor, get_items_by_vendor, get_inventory_item, get_vendor_item, get_usage_by_item, get_slack_management
+    get_vendor, get_items_by_vendor, get_inventory_item, get_vendor_item, get_usage_by_item, get_slack_management,
+    get_current_user
 )
 from crud.update import (
     update_user, update_vendor, update_inventory_item, update_order,
-    update_vendor_item, update_notification, update_log, update_inventory_usage, update_slack_management
+    update_vendor_item, update_notification, update_log, update_inventory_usage, update_slack_management, mark_notifications_read
 )
 from crud.delete import (
     delete_user, delete_vendor, delete_inventory_item, delete_order,
-    delete_vendor_item, delete_notification, delete_log, delete_inventory_usage
+    delete_vendor_item, delete_notifications, delete_log, delete_inventory_usage
 )
 from crud.utils import login, logout, get_stats, start_watching_collections
 
@@ -77,6 +78,7 @@ app.route('/api/users', methods=['GET'])(get_users)
 app.route('/api/users/<id>', methods=['PUT'])(update_user)
 app.route('/api/users/<id>', methods=['DELETE'])(delete_user)
 app.route('/api/users/<id>', methods=['GET'])(get_user)  # Added
+app.route('/api/users/me', methods=['GET'])(get_current_user)  # Added
 
 # Routes for Vendors
 app.route('/api/vendors', methods=['POST'])(create_vendor)
@@ -110,7 +112,8 @@ app.route('/api/vendor-items/<vendor_item_id>', methods=['GET'])(get_vendor_item
 app.route('/api/notifications', methods=['POST'])(create_notification)
 app.route('/api/notifications', methods=['GET'])(get_notifications)
 app.route('/api/notifications/<id>', methods=['PUT'])(update_notification)
-app.route('/api/notifications/<id>', methods=['DELETE'])(delete_notification)
+app.route('/api/notifications', methods=['DELETE'])(delete_notifications)
+app.route('/api/notifications/mark-read', methods=['PUT'])(mark_notifications_read)  # Added
 
 # Routes for Logs
 app.route('/api/logs', methods=['POST'])(create_log)

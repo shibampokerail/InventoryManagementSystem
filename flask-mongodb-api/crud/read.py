@@ -1,5 +1,5 @@
 from flask import jsonify, logging, request
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import get_jwt_identity, jwt_required
 from crud.utils import connect_to_mongo, api_key_or_jwt_required
 from bson.objectid import ObjectId
 from bson.errors import InvalidId 
@@ -41,6 +41,37 @@ def get_user(id):
         # Catch any other unexpected errors
         return jsonify({'error': 'An unexpected error occurred', 'details': str(e)}), 500
 
+@api_key_or_jwt_required()
+def get_current_user():
+    db = connect_to_mongo()
+    try:
+        # Get the email from the JWT token
+        # Get the user ID from the JWT token
+        user_id = get_jwt_identity()
+        if not user_id:
+            return jsonify({'error': 'Invalid token: No identity found'}), 401
+
+        # Find user by _id
+        try:
+            user = db.Users.find_one({'_id': ObjectId(user_id)})
+        except InvalidId:
+            return jsonify({'error': 'Invalid user ID in token'}), 400
+
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        # Serialize user data
+        user['_id'] = str(user['_id'])
+        user['slackId'] = user.get('slackId', '')
+        user['role'] = user.get('role', 'employee')  
+        user['email'] = user.get('email', '')
+        user['name'] = user.get('name', '')
+        return jsonify(user), 200
+    except Exception as e:
+        return jsonify({'error': 'An unexpected error occurred', 'details': str(e)}), 500
+
+
+
 # Get all vendors
 @api_key_or_jwt_required()
 def get_vendors():
@@ -70,14 +101,47 @@ def get_vendor(vendor_id):
 def get_orders():
     db = connect_to_mongo()
     try:
-        orders = list(db.Orders.find())
+        pipeline = [
+            {
+                "$lookup": {
+                    "from": "InventoryItems",
+                    "localField": "itemId",
+                    "foreignField": "_id",
+                    "as": "item"
+                }
+            },
+            {"$unwind": {"path": "$item", "preserveNullAndEmptyArrays": True}},
+            {
+                "$lookup": {
+                    "from": "Vendors",
+                    "localField": "vendorId",
+                    "foreignField": "_id",
+                    "as": "vendor"
+                }
+            },
+            {"$unwind": {"path": "$vendor", "preserveNullAndEmptyArrays": True}},
+            {
+                "$project": {
+                    "_id": 1,
+                    "itemId": 1,
+                    "vendorId": 1,
+                    "quantity": 1,
+                    "orderDate": 1,
+                    "expectedDelivery": 1,
+                    "status": 1,
+                    "itemName": {"$ifNull": ["$item.name", "Unknown Item"]},
+                    "vendorName": {"$ifNull": ["$vendor.name", "Unknown Vendor"]}
+                }
+            }
+        ]
+        orders = list(db.Orders.aggregate(pipeline))
         for order in orders:
             order['_id'] = str(order['_id'])
             order['itemId'] = str(order['itemId'])
             order['vendorId'] = str(order['vendorId'])
-        return jsonify(orders)
+        return jsonify(orders), 200
     except Exception as e:
-        return jsonify({'error': 'Failed to fetch orders'}), 500
+        return jsonify({'error': 'Failed to fetch orders', 'details': str(e)}), 500
 
 # Get all vendor-items
 @api_key_or_jwt_required()
@@ -112,6 +176,7 @@ def get_notifications():
         notifications = list(db.Notifications.find())
         for notification in notifications:
             notification['_id'] = str(notification['_id'])
+            notification['read'] = notification.get('read', False)
         return jsonify(notifications)
     except Exception as e:
         return jsonify({'error': 'Failed to fetch notifications'}), 500

@@ -47,7 +47,7 @@ def create_inventory_item():
     data = request.get_json()
 
     # Define required fields based on the schema
-    required_fields = ['name', 'category', 'quantity', 'minQuantity', 'unit', 'location', 'status', 'condition']
+    required_fields = ['name', 'category', 'quantity', 'minQuantity', 'unit', 'location', 'status', 'condition', 'description']
     if not data or not all(key in data for key in ['name', 'quantity', 'location']):
         return jsonify({'error': 'Missing required fields: name, quantity, location'}), 400
 
@@ -61,6 +61,7 @@ def create_inventory_item():
         'location': data.get('location'),
         'status': data.get('status', 'AVAILABLE'),  # Default to 'AVAILABLE' if not provided
         'condition': data.get('condition', 'OK'),  # Default to 'OK' if not provided
+        'description': data.get('description', ''),  # Default to empty string if not provided
     }
 
     # Validate required fields
@@ -82,22 +83,27 @@ def create_inventory_item():
 def create_order():
     db = connect_to_mongo()
     data = request.get_json()
-    if not data or not all(key in data for key in ['itemId', 'vendorId', 'quantity']):
-        return jsonify({'error': 'Missing required fields: itemId, vendorId, quantity'}), 400
+    required_fields = ['itemId', 'vendorId', 'quantity', 'orderDate', 'expectedDelivery', 'status']
+    if not all(field in data for field in required_fields):
+        return jsonify({'error': 'Missing required fields'}), 400
 
-    new_order = {
-        'itemId': ObjectId(data['itemId']),
-        'vendorId': ObjectId(data['vendorId']),
-        'quantity': int(data['quantity']),
-        'status': data.get('status', 'pending'),
-        'created_at': datetime.utcnow()
-    }
-    result = db.Orders.insert_one(new_order)
-    new_order['_id'] = str(result.inserted_id)
-    new_order['itemId'] = str(new_order['itemId'])
-    new_order['vendorId'] = str(new_order['vendorId'])
-    return jsonify(new_order), 201
-
+    try:
+        order = {
+            'itemId': ObjectId(data['itemId']),
+            'vendorId': ObjectId(data['vendorId']),
+            'quantity': int(data['quantity']),
+            'orderDate': datetime.fromisoformat(data['orderDate'].replace('Z', '+00:00')),
+            'expectedDelivery': datetime.fromisoformat(data['expectedDelivery'].replace('Z', '+00:00')),
+            'status': data['status'],
+            'created_at': datetime.utcnow()
+        }
+        result = db.Orders.insert_one(order)
+        if order['status'] == 'received':
+            # Update inventory item quantity if order is received
+            db.InventoryItems.update_one({'_id': order['itemId']}, {'$inc': {'quantity': order['quantity']}})
+        return jsonify({'message': 'Order created', 'id': str(result.inserted_id)}), 201
+    except Exception as e:
+        return jsonify({'error': 'Failed to create order', 'details': str(e)}), 500
 # Create a Vendor-Item
 @api_key_or_jwt_required()
 def create_vendor_item():
@@ -128,7 +134,10 @@ def create_notification():
 
     new_notification = {
         'message': data['message'],
-        'created_at': datetime.utcnow()
+        'created_at': datetime.utcnow(),
+        'recipient': data.get('recipient', 'all'),  # Default to 'all' if not provided
+        'type': data.get('type', 'info'),  # Default to 'info' if not provided
+        'read': data.get('read', False),  # Default to False if not provided
     }
     result = db.Notifications.insert_one(new_notification)
     new_notification['_id'] = str(result.inserted_id)

@@ -43,7 +43,6 @@ def update_vendor(id):
         return jsonify({'error': 'Vendor not found'}), 404
     return jsonify({'message': 'Vendor updated successfully'}), 200
 
-# Update an Inventory Item
 @api_key_or_jwt_required()
 def update_inventory_item(id):
     db = connect_to_mongo()
@@ -52,7 +51,7 @@ def update_inventory_item(id):
         return jsonify({'error': 'No data provided'}), 400
 
     # Define fields that can be updated (excluding created_at)
-    updatable_fields = ['name', 'category', 'quantity', 'minQuantity', 'unit', 'location', 'status', 'condition']
+    updatable_fields = ['name', 'category', 'quantity', 'minQuantity', 'unit', 'location', 'status', 'condition', 'description']
     update_data = {k: v for k, v in data.items() if k in updatable_fields}
     if not update_data:
         return jsonify({'error': 'No valid fields to update'}), 400
@@ -74,6 +73,20 @@ def update_inventory_item(id):
     result = db.InventoryItems.update_one({'_id': ObjectId(id)}, {'$set': update_data})
     if result.matched_count == 0:
         return jsonify({'error': 'Inventory item not found'}), 404
+
+    # Check if quantity is below minQuantity and create notification if necessary
+    if 'quantity' in update_data or 'minQuantity' in update_data:
+        updated_item = db.InventoryItems.find_one({'_id': ObjectId(id)})
+        if updated_item and updated_item['quantity'] < updated_item['minQuantity']:
+            notification = {
+                'type': 'lowStock',
+                'message': f"{updated_item['name']} quantity is below minimum threshold.",
+                'timestamp': datetime.utcnow(),
+                'recipient': 'general_channel',
+                'read': False
+            }
+            db.Notifications.insert_one(notification)
+
     return jsonify({'message': 'Inventory item updated successfully'}), 200
 
 # Update an Order
@@ -92,6 +105,14 @@ def update_order(id):
         update_data['quantity'] = int(update_data['quantity'])
     update_data['updated_at'] = datetime.utcnow()
     result = db.Orders.update_one({'_id': ObjectId(id)}, {'$set': update_data})
+    if update_data.get('status') == 'received':
+        # Update inventory item quantity when order is received
+        order = db.Orders.find_one({'_id': ObjectId(id)})
+        if order:
+            db.InventoryItems.update_one(
+                {'_id': ObjectId(order['itemId'])},
+                {'$inc': {'quantity': order['quantity']}}
+            )
     if result.matched_count == 0:
         return jsonify({'error': 'Order not found'}), 404
     return jsonify({'message': 'Order updated successfully'}), 200
@@ -133,6 +154,27 @@ def update_notification(id):
     if result.matched_count == 0:
         return jsonify({'error': 'Notification not found'}), 404
     return jsonify({'message': 'Notification updated successfully'}), 200
+
+@api_key_or_jwt_required()
+def mark_notifications_read():
+    db = connect_to_mongo()
+    data = request.get_json()
+    notification_ids = data.get('ids', [])
+    if not notification_ids:
+        return jsonify({'error': 'No notification IDs provided'}), 400
+
+    try:
+        # Convert string IDs to ObjectId
+        object_ids = [ObjectId(id) for id in notification_ids]
+        result = db.Notifications.update_many(
+            {'_id': {'$in': object_ids}},
+            {'$set': {'read': True, 'updated_at': datetime.utcnow()}}
+        )
+        if result.matched_count == 0:
+            return jsonify({'error': 'No notifications found'}), 404
+        return jsonify({'message': f'Marked {result.modified_count} notifications as read'}), 200
+    except Exception as e:
+        return jsonify({'error': 'Failed to mark notifications as read', 'details': str(e)}), 500
 
 # Update a Log
 @api_key_or_jwt_required()
