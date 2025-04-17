@@ -39,6 +39,7 @@ interface Order {
   quantity: number;
   expectedDelivery: Date;
   status: string;
+  updated_at: string;
  
 }
 
@@ -122,7 +123,7 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
   const [logs, setLogs] = useState<Log[]>([]);
   const [inventoryUsage, setInventoryUsage] = useState<InventoryUsage[]>([]);
   const [slackManagement, setSlackManagement] = useState<SlackManagement[]>([]);
-  const [roles, setRoles] = useState<string[]>([]);
+  const [roles, setRoles] = useState<string[]>(["admin", "manager", "employee"]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {

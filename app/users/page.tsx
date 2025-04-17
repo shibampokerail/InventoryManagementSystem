@@ -78,7 +78,8 @@ export default function UsersPage() {
     try {
       const usersData = await fetchWithAuth("/api/users");
       setUsers(usersData);
-      const uniqueRoles = [...new Set(usersData.map((user: User) => user.role))] as string[];
+      const defaultRoles = ["admin", "manager", "employee"];
+      const uniqueRoles = Array.from(new Set([...defaultRoles, ...usersData.map((user: User) => user.role)]));
       setRoles(uniqueRoles);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch data. Please try again.");

@@ -13,7 +13,7 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
       <Link
         href="/"
         className={cn(
-          "text-sm font-medium transition-colors hover:text-purple-700 dark:hover:text-purple-300",
+          "text-sm font-medium transition-colors hover:text-purple-700 dark:hover:text-purple-300 hover:underline hover:scale-110",
           pathname === "/" ? "text-purple-900 dark:text-purple-50" : "text-purple-600 dark:text-purple-400",
         )}
       >
@@ -22,16 +22,16 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
       <Link
         href="/users"
         className={cn(
-          "text-sm font-medium transition-colors hover:text-purple-700 dark:hover:text-purple-300",
+          "text-sm font-medium transition-colors hover:text-purple-700 dark:hover:text-purple-300 hover:underline hover:scale-110",
           pathname === "/users" ? "text-purple-900 dark:text-purple-50" : "text-purple-600 dark:text-purple-400",
         )}
       >
-        Users
+         All Users
       </Link>
       <Link
         href="/slack-bots"
         className={cn(
-          "text-sm font-medium transition-colors hover:text-purple-700 dark:hover:text-purple-300",
+          "text-sm font-medium transition-colors hover:text-purple-700 dark:hover:text-purple-300 hover:underline hover:scale-110",
           pathname === "/slack-bots" ? "text-purple-900 dark:text-purple-50" : "text-purple-600 dark:text-purple-400",
         )}
       >
@@ -40,13 +40,13 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
       <Link
         href="/profile"
         className={cn(
-          "text-sm font-medium transition-colors hover:text-purple-700 dark:hover:text-purple-300",
+          "text-sm font-medium transition-colors hover:text-purple-700 dark:hover:text-purple-300 hover:underline hover:scale-110",
           pathname === "/profile" ? "text-purple-900 dark:text-purple-50" : "text-purple-600 dark:text-purple-400",
         )}
       >
-        Profile
+        Your Profile
       </Link>
-      <Link
+      {/* <Link
         href="/settings"
         className={cn(
           "text-sm font-medium transition-colors hover:text-purple-700 dark:hover:text-purple-300",
@@ -54,11 +54,11 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
         )}
       >
         Settings
-      </Link>
+      </Link> */}
       <Link
         href="/notifications"
         className={cn(
-          "text-sm font-medium transition-colors hover:text-purple-700 dark:hover:text-purple-300",
+          "text-sm font-medium transition-colors hover:text-purple-700 dark:hover:text-purple-300 hover:underline hover:scale-110",
           pathname === "/notifications"
             ? "text-purple-900 dark:text-purple-50"
             : "text-purple-600 dark:text-purple-400",

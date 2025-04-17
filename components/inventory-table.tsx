@@ -39,20 +39,20 @@ export function InventoryTable({ inventoryItems }: { inventoryItems: InventoryIt
               <TableCell className="text-purple-700 dark:text-purple-300">{item.category || "N/A"}</TableCell>
               <TableCell className="text-purple-900 dark:text-purple-50">{item.quantity}</TableCell>
               <TableCell>
-                <Badge
-                  variant={
-                    item.status === "In Stock" ? "default" : item.status === "Low Stock" ? "destructive" : "outline"
-                  }
-                  className={
-                    item.status === "In Stock"
-                      ? "bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900 dark:text-green-100"
-                      : item.status === "Low Stock"
+              <Badge
+                    variant={
+                      item.status === "AVAILABLE" ? "default" : item.status === "LOW_STOCK" ? "destructive" : "outline"
+                    }
+                    className={
+                      item.status === "AVAILABLE"
+                        ? "bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900 dark:text-green-100"
+                        : item.status === "LOW_STOCK"
                         ? "bg-red-100 text-red-800 hover:bg-red-100 dark:bg-red-900 dark:text-red-100"
                         : "bg-amber-100 text-amber-800 hover:bg-amber-100 dark:bg-amber-900 dark:text-amber-100"
-                  }
-                >
-                  {item.status || "Unknown"}
-                </Badge>
+                    }
+                  >
+                    {item.status || "Unknown"}
+                  </Badge>
               </TableCell>
               <TableCell className="text-purple-700 dark:text-purple-300">{item.location}</TableCell>
             </TableRow>

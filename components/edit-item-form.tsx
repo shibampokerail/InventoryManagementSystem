@@ -25,18 +25,20 @@ const locations = [
 const conditions = ["OK", "DAMAGED", "LOST", "STOLEN", "OTHER (Add your own)"];
 const statuses = ["AVAILABLE", "LOW STOCK"];
 const units = ["pieces", "boxes", "packs", "rolls", "bags", "cases", "other (add your own)"];
+
 interface InventoryItem {
-    _id: string;
-    name: string;
-    category: string;
-    quantity: number;
-    minQuantity: number;
-    unit: string;
-    location: string;
-    status: string;
-    condition: string;
-    description: string;
-  }
+  _id: string;
+  name: string;
+  category: string;
+  quantity: number;
+  minQuantity: number;
+  unit: string;
+  location: string;
+  status: string;
+  condition: string;
+  description: string;
+}
+
 interface EditItemFormProps {
   item: InventoryItem;
   onSuccess?: () => void;
@@ -49,20 +51,39 @@ export function EditItemForm({ item, onSuccess }: EditItemFormProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    name: item.name,
-    category: categories.includes(item.category) ? item.category : "Other",
-    customCategory: categories.includes(item.category) ? "" : item.category,
-    quantity: item.quantity.toString(),
-    minQuantity: item.minQuantity.toString(),
-    unit: units.includes(item.unit) ? item.unit : "other (add your own)",
-    customUnit: units.includes(item.unit) ? "" : item.unit,
-    location: locations.includes(item.location) ? item.location : "Other (Add your own)",
-    customLocation: locations.includes(item.location) ? "" : item.location,
-    status: item.status,
-    condition: conditions.includes(item.condition) ? item.condition : "OTHER (Add your own)",
-    customCondition: conditions.includes(item.condition) ? "" : item.condition,
-    description: item.description || "",
+    name: "",
+    category: "",
+    customCategory: "",
+    quantity: "",
+    minQuantity: "",
+    unit: "",
+    customUnit: "",
+    location: "",
+    customLocation: "",
+    status: "",
+    condition: "",
+    customCondition: "",
+    description: "",
   });
+
+  // Initialize formData only once when the component mounts or when the item prop changes
+  useEffect(() => {
+    setFormData({
+      name: item.name,
+      category: categories.includes(item.category) ? item.category : "Other",
+      customCategory: categories.includes(item.category) ? "" : item.category,
+      quantity: item.quantity.toString(),
+      minQuantity: item.minQuantity.toString(),
+      unit: units.includes(item.unit) ? item.unit : "other (add your own)",
+      customUnit: units.includes(item.unit) ? "" : item.unit,
+      location: locations.includes(item.location) ? item.location : "Other (Add your own)",
+      customLocation: locations.includes(item.location) ? "" : item.location,
+      status: item.status,
+      condition: conditions.includes(item.condition) ? item.condition : "OTHER (Add your own)",
+      customCondition: conditions.includes(item.condition) ? "" : item.condition,
+      description: item.description || "",
+    });
+  }, [item]); // Only re-run when `item` changes
 
   const getToken = () => localStorage.getItem("token");
 
@@ -94,23 +115,23 @@ export function EditItemForm({ item, onSuccess }: EditItemFormProps) {
     setLoading(false);
   }, []);
 
-  // In EditItemForm component, add debugging to handleInputChange:
-const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-  const { name, value } = e.target;
-  console.log(`Input changed: ${name} = ${value}`);
-  setFormData((prev) => {
-    const updated = { ...prev, [name]: value };
-    console.log("Updated form data:", updated);
-    return updated;
-  });
-};
-  // const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-  //   const { name, value } = e.target;
-  //   setFormData((prev) => ({ ...prev, [name]: value }));
-  // };
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    console.log(`Input changed: ${name} = ${value}`);
+    setFormData((prev) => {
+      const updated = { ...prev, [name]: value };
+      console.log("Updated form data:", updated);
+      return updated;
+    });
+  };
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    console.log(`Select changed: ${name} = ${value}`);
+    setFormData((prev) => {
+      const updated = { ...prev, [name]: value };
+      console.log("Updated form data:", updated);
+      return updated;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -199,19 +220,29 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaE
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="name" className="text-purple-900 dark:text-purple-50">Item Name <span className="text-red-500">*</span></Label>
-          <Input id="name" name="name" value={formData.name} onChange={handleInputChange} placeholder="e.g., Folding Table"
-            className="border-purple-200 dark:border-purple-800" required />
+          <Input
+            id="name"
+            name="name"
+            value={formData.name}
+            onChange={handleInputChange}
+            placeholder="e.g., Folding Table"
+            className="border-purple-200 dark:border-purple-800"
+            required
+          />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="category" className="text-purple-900 dark:text-purple-50">Category <span className="text-red-500">*</span></Label>
           <Select value={formData.category} onValueChange={(value) => handleSelectChange("category", value)} required>
-            <SelectTrigger id="category" className="border-purple-200 dark:border-purple-800"><SelectValue placeholder="Select category" /></SelectTrigger>
+            <SelectTrigger id="category" className="border-purple-200 dark:border-purple-800">
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
             <SelectContent>
               {categories.map((category) => (
                 <SelectItem key={category} value={category}>{category}</SelectItem>
               ))}
             </SelectContent>
+
           </Select>
           {formData.category === "Other" && (
             <Input
@@ -220,6 +251,7 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaE
               value={formData.customCategory}
               onChange={handleInputChange}
               placeholder="Specify category"
+              className="border-purple-200 dark:border-purple-800"
               required
             />
           )}
@@ -227,20 +259,42 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaE
 
         <div className="space-y-2">
           <Label htmlFor="quantity" className="text-purple-900 dark:text-purple-50">Quantity <span className="text-red-500">*</span></Label>
-          <Input id="quantity" name="quantity" type="number" min="0" value={formData.quantity} onChange={handleInputChange} placeholder="e.g., 10"
-            className="border-purple-200 dark:border-purple-800" required />
+          <Input
+            id="quantity"
+            name="quantity"
+            type="number"
+            min="0"
+            step="1"
+            value={formData.quantity}
+            onChange={handleInputChange}
+            placeholder="e.g., 10"
+            className="border-purple-200 dark:border-purple-800"
+            required
+          />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="minQuantity" className="text-purple-900 dark:text-purple-50">Minimum Quantity <span className="text-red-500">*</span></Label>
-          <Input id="minQuantity" name="minQuantity" type="number" min="0" value={formData.minQuantity} onChange={handleInputChange} placeholder="e.g., 5"
-            className="border-purple-200 dark:border-purple-800" required />
+          <Input
+            id="minQuantity"
+            name="minQuantity"
+            type="number"
+            min="0"
+            step="1"
+            value={formData.minQuantity}
+            onChange={handleInputChange}
+            placeholder="e.g., 5"
+            className="border-purple-200 dark:border-purple-800"
+            required
+          />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="unit" className="text-purple-900 dark:text-purple-50">Unit <span className="text-red-500">*</span></Label>
           <Select value={formData.unit} onValueChange={(value) => handleSelectChange("unit", value)} required>
-            <SelectTrigger id="unit" className="border-purple-200 dark:border-purple-800"><SelectValue placeholder="Select unit" /></SelectTrigger>
+            <SelectTrigger id="unit" className="border-purple-200 dark:border-purple-800">
+              <SelectValue placeholder="Select unit" />
+            </SelectTrigger>
             <SelectContent>
               {units.map((unit) => (
                 <SelectItem key={unit} value={unit}>{unit}</SelectItem>
@@ -254,6 +308,7 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaE
               value={formData.customUnit}
               onChange={handleInputChange}
               placeholder="Specify unit"
+              className="border-purple-200 dark:border-purple-800"
               required
             />
           )}
@@ -262,7 +317,9 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaE
         <div className="space-y-2">
           <Label htmlFor="location" className="text-purple-900 dark:text-purple-50">Location <span className="text-red-500">*</span></Label>
           <Select value={formData.location} onValueChange={(value) => handleSelectChange("location", value)} required>
-            <SelectTrigger id="location" className="border-purple-200 dark:border-purple-800"><SelectValue placeholder="Select location" /></SelectTrigger>
+            <SelectTrigger id="location" className="border-purple-200 dark:border-purple-800">
+              <SelectValue placeholder="Select location" />
+            </SelectTrigger>
             <SelectContent>
               {locations.map((location) => (
                 <SelectItem key={location} value={location}>{location}</SelectItem>
@@ -276,6 +333,7 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaE
               value={formData.customLocation}
               onChange={handleInputChange}
               placeholder="Specify location"
+              className="border-purple-200 dark:border-purple-800"
               required
             />
           )}
@@ -284,7 +342,9 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaE
         <div className="space-y-2">
           <Label htmlFor="status" className="text-purple-900 dark:text-purple-50">Status <span className="text-red-500">*</span></Label>
           <Select value={formData.status} onValueChange={(value) => handleSelectChange("status", value)} required>
-            <SelectTrigger id="status" className="border-purple-200 dark:border-purple-800"><SelectValue placeholder="Select status" /></SelectTrigger>
+            <SelectTrigger id="status" className="border-purple-200 dark:border-purple-800">
+              <SelectValue placeholder="Select status" />
+            </SelectTrigger>
             <SelectContent>
               {statuses.map((status) => (
                 <SelectItem key={status} value={status}>{status}</SelectItem>
@@ -296,7 +356,9 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaE
         <div className="space-y-2">
           <Label htmlFor="condition" className="text-purple-900 dark:text-purple-50">Condition <span className="text-red-500">*</span></Label>
           <Select value={formData.condition} onValueChange={(value) => handleSelectChange("condition", value)} required>
-            <SelectTrigger id="condition" className="border-purple-200 dark:border-purple-800"><SelectValue placeholder="Select condition" /></SelectTrigger>
+            <SelectTrigger id="condition" className="border-purple-200 dark:border-purple-800">
+              <SelectValue placeholder="Select condition" />
+            </SelectTrigger>
             <SelectContent>
               {conditions.map((condition) => (
                 <SelectItem key={condition} value={condition}>{condition}</SelectItem>
@@ -310,6 +372,7 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaE
               value={formData.customCondition}
               onChange={handleInputChange}
               placeholder="Specify condition"
+              className="border-purple-200 dark:border-purple-800"
               required
             />
           )}
@@ -317,9 +380,7 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaE
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description" className="text-purple-900 dark:text-purple-50">
-          Description
-        </Label>
+        <Label htmlFor="description" className="text-purple-900 dark:text-purple-50">Description</Label>
         <Textarea
           id="description"
           name="description"
