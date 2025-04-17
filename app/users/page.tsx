@@ -22,18 +22,18 @@ import { MainNav } from "@/components/main-nav";
 import { UserNav } from "@/components/user-nav";
 import { Package, UserPlus } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import router from "next/router";
-import { io } from "socket.io-client";
+import { useWebSocket } from "@/context/WebSocketContext";
+import { useRouter } from "next/navigation";
 
 export default function UsersPage() {
   const { toast } = useToast();
+  const router = useRouter();
+  const { users, setUsers, roles, setRoles, error: wsError } = useWebSocket();
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [isEditingUser, setIsEditingUser] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
-  const [users, setUsers] = useState<User[]>([]);
-  const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,7 +62,10 @@ export default function UsersPage() {
     });
 
     if (!response.ok) {
-      if (response.status === 401) throw new Error("Unauthorized: Invalid or expired token. Please log in again.");
+      if (response.status === 401) {
+        router.push("/api/auth/login");
+        throw new Error("Unauthorized: Invalid or expired token. Please log in again.");
+      }
       if (response.status === 403) throw new Error("Forbidden: You do not have permission to perform this action.");
       const errorData = await response.json();
       throw new Error(errorData.message || `Failed to fetch ${endpoint}: ${response.statusText}`);
@@ -75,8 +78,6 @@ export default function UsersPage() {
     try {
       const usersData = await fetchWithAuth("/api/users");
       setUsers(usersData);
-
-      // Extract unique roles from users
       const uniqueRoles = [...new Set(usersData.map((user: User) => user.role))] as string[];
       setRoles(uniqueRoles);
     } catch (err) {
@@ -85,86 +86,15 @@ export default function UsersPage() {
       setLoading(false);
     }
   };
-  
-    // Step 3: Set up WebSocket connection for real-time updates
-useEffect(() => {
-  if (!getToken()) return;
 
-  const socketInstance = io(`${process.env.NEXT_PUBLIC_API_URL}/realtime`, {
-    path: "/socket.io",
-    transports: ["websocket"],
-    query: { token: getToken() },
-    reconnection: true,
-    reconnectionAttempts: Infinity,
-    reconnectionDelay: 1000,
-  });
-
-  socketInstance.on("connect", () => {
-    console.log("Connected to WebSocket server for user updates");
-  });
-
-  socketInstance.on("connection_status", (data) => {
-    console.log("Connection status:", data);
-  });
-
-  // Listen for users insert events
-  socketInstance.on("users_insert", (newUser: User) => {
-    console.log("New user:", newUser);
-    setUsers((prev) => {
-      if (prev.some((user) => user._id === newUser._id)) return prev;
-      return [...prev, newUser];
-    });
-    // Update roles if the new user has a new role
-    setRoles((prev) => {
-      const newRole = newUser.role;
-      return prev.includes(newRole) ? prev : [...prev, newRole];
-    });
-  });
-
-  // Listen for users update events
-  socketInstance.on("users_update", (updatedUser: User) => {
-    console.log("Updated user:", updatedUser);
-    setUsers((prev) =>
-      prev.map((user) => (user._id === updatedUser._id ? updatedUser : user))
-    );
-  });
-
-  // Listen for users delete events
-  socketInstance.on("users_delete", (data: { _id: string }) => {
-    console.log("Deleted user:", data._id);
-    setUsers((prev) => {
-      const updatedUsers = prev.filter((user) => user._id !== data._id);
-      // Update roles based on the updated users list
-      setRoles([...new Set(updatedUsers.map((user) => user.role))]);
-      return updatedUsers;
-    });
-  });
-
-  socketInstance.on("disconnect", () => {
-    console.log("Disconnected from WebSocket server");
-  });
-
-  socketInstance.on("connect_error", (err) => {
-    console.error("WebSocket connection error:", err.message);
-    if (err.message.includes("Invalid token")) {
-      console.log("Invalid token detected, redirecting to login...");
-      localStorage.removeItem("token");
-      router.push("/api/auth/login");
-    } else {
-      setError("Failed to connect to real-time updates. Please refresh the page.");
-    }
-  });
-
-  // Cleanup on unmount
-  return () => {
-    socketInstance.disconnect();
-  };
-}, [router]);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     if (isEditingUser && editingUser) {
-      setEditingUser((prev) => prev ? { ...prev, [id]: value } : null);
+      setEditingUser((prev) => (prev ? { ...prev, [id]: value } : null));
     } else {
       setNewUser((prev) => ({ ...prev, [id]: value }));
     }
@@ -172,7 +102,7 @@ useEffect(() => {
 
   const handleRoleChange = (value: string) => {
     if (isEditingUser && editingUser) {
-      setEditingUser((prev) => prev ? { ...prev, role: value } : null);
+      setEditingUser((prev) => (prev ? { ...prev, role: value } : null));
     } else {
       setNewUser((prev) => ({ ...prev, role: value }));
     }
@@ -302,7 +232,7 @@ useEffect(() => {
   });
 
   if (loading) return <div className="text-purple-900 dark:text-purple-50 p-8">Loading...</div>;
-  if (error) return <div className="text-red-500 p-8">{error}</div>;
+  if (error || wsError) return <div className="text-red-500 p-8">{error || wsError}</div>;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -587,7 +517,7 @@ useEffect(() => {
                   </Select>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="slackId" className="text-right text-purple-900 dark:text-purple-50">
+                  <Label htmlFor="slackId" className="text-right text-plot-purple-900 dark:text-purple-50">
                     Slack ID
                   </Label>
                   <Input

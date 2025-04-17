@@ -6,14 +6,16 @@ import { Badge } from "@/components/ui/badge";
 interface InventoryItem {
   _id: string;
   name: string;
-  category?: string;
+  category: string;
   quantity: number;
-  status?: string;
-  location?: string;
-  last_checked_out?: string | null;
-  condition?: string;
-  value?: number;
+  minQuantity: number;
+  unit: string;
+  location: string;
+  status: string;
+  condition: string;
+  description: string;
 }
+
 export function InventoryTable({ inventoryItems }: { inventoryItems: InventoryItem[] }) {
   // Show only the first 7 items for the overview table
   const displayItems = inventoryItems.slice(0, 7);

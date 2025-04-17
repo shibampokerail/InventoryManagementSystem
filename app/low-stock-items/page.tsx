@@ -1,37 +1,101 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { useInventory } from "@/context/inventory-context"
-import { AlertTriangle, ArrowLeft, Search } from "lucide-react"
-import Link from "next/link"
-import { useState } from "react"
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertTriangle, ArrowLeft, Search } from "lucide-react";
+import Link from "next/link";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+
+interface InventoryItem {
+  _id: string;
+  name: string;
+  description: string;
+  category: string;
+  quantity: number;
+  minQuantity: number;
+  unit: string;
+  location: string;
+  status: string;
+  condition: string;
+}
 
 export default function LowStockItemsPage() {
-  const { inventoryItems } = useInventory()
-  const [searchTerm, setSearchTerm] = useState("")
-  const [categoryFilter, setCategoryFilter] = useState("all")
+  const router = useRouter();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Get token from localStorage
+  const getToken = () => localStorage.getItem("token");
+
+  // Fetch with authentication
+  const fetchWithAuth = async (endpoint: string, options: { method?: string; body?: string; headers?: Record<string, string> } = {}) => {
+    const token = getToken();
+    if (!token) {
+      throw new Error("Authentication token not found. Please log in again.");
+    }
+
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) throw new Error("Unauthorized: Invalid or expired token. Please log in again.");
+      if (response.status === 403) throw new Error("Forbidden: You do not have permission to perform this action.");
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Failed to fetch ${endpoint}: ${response.statusText}`);
+    }
+
+    return response.json();
+  };
+
+  // Fetch inventory items on mount
+  useEffect(() => {
+    const fetchInventoryItems = async () => {
+      try {
+        const data = await fetchWithAuth("/api/inventory-items");
+        setInventoryItems(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to fetch inventory items. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInventoryItems();
+  }, []);
 
   // Get unique categories
-  const categories = ["all", ...Array.from(new Set(inventoryItems.map((item) => item.category)))]
+  const categories = ["all", ...Array.from(new Set(inventoryItems.map((item) => item.category)))];
 
   // Filter for low stock items (less than 20)
-  const lowStockItems = inventoryItems.filter((item) => item.quantity < 20)
+  const lowStockItems = inventoryItems.filter((item) => item.quantity < 20);
 
   // Apply search and category filters
   const filteredItems = lowStockItems.filter((item) => {
     const matchesSearch =
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.location.toLowerCase().includes(searchTerm.toLowerCase())
+      item.location.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesCategory = categoryFilter === "all" || item.category === categoryFilter
+    const matchesCategory = categoryFilter === "all" || item.category === categoryFilter;
 
-    return matchesSearch && matchesCategory
-  })
+    return matchesSearch && matchesCategory;
+  });
+
+  if (loading) return <div className="text-purple-900 dark:text-purple-50 p-8">Loading...</div>;
+  if (error) return <div className="text-red-500 p-8">{error}</div>;
 
   return (
     <div className="flex min-h-screen flex-col bg-purple-50/50 dark:bg-purple-950/50">
@@ -75,7 +139,7 @@ export default function LowStockItemsPage() {
           <CardHeader>
             <CardTitle className="text-purple-900 dark:text-purple-50">Low Stock Inventory</CardTitle>
             <CardDescription className="text-purple-700 dark:text-purple-300">
-              Items with less than 20 units available
+              Items with less than their Minimum units are listed here
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -92,7 +156,7 @@ export default function LowStockItemsPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredItems.map((item) => (
-                    <TableRow key={item.id} className="hover:bg-purple-100/50 dark:hover:bg-purple-900/50">
+                    <TableRow key={item._id} className="hover:bg-purple-100/50 dark:hover:bg-purple-900/50">
                       <TableCell className="font-medium">{item.name}</TableCell>
                       <TableCell>{item.category}</TableCell>
                       <TableCell className="text-right">{item.quantity}</TableCell>
@@ -100,12 +164,12 @@ export default function LowStockItemsPage() {
                         <div
                           className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
                           ${
-                            item.quantity < 10
+                            item.quantity < item.minQuantity
                               ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
                               : "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"
                           }`}
                         >
-                          {item.quantity < 10 ? "Critical" : "Low Stock"}
+                          {item.quantity < item.minQuantity ? "Critical" : "Low Stock"}
                         </div>
                       </TableCell>
                       <TableCell>{item.location}</TableCell>
@@ -128,5 +192,5 @@ export default function LowStockItemsPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

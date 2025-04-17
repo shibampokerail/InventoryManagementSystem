@@ -1,4 +1,3 @@
-// app/dashboard.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -12,34 +11,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, AlertTriangle, CheckCircle2, Package } from "lucide-react";
 import { InventoryFullView } from "@/components/inventory-full-view";
-import { CheckoutForm } from "@/components/checkout-form";
 import { ReportsView } from "@/components/reports-view";
-import { io, Socket } from "socket.io-client";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AddItemForm } from "@/components/add-item-form";
 import { useRouter } from "next/navigation";
 import { useUser } from "@auth0/nextjs-auth0/client";
-
-interface InventoryItem {
-  _id: string;
-  name: string;
-  category: string;
-  quantity: number;
-  minQuantity: number;
-  unit: string;
-  location: string;
-  status: string;
-  condition: string;
-  description: string;
-}
-
+import { useWebSocket } from "@/context/WebSocketContext";
 
 // Utility function to get the JWT token from localStorage
 const getToken = () => {
@@ -70,21 +47,19 @@ const fetchWithAuth = async (endpoint: string, token: string, options: RequestIn
 export default function InventoryDashboard() {
   const router = useRouter();
   const { user, isLoading: authLoading, error: authError } = useUser();
+  const { inventoryItems, setInventoryItems, inventoryUsage, error: wsError } = useWebSocket();
 
   // State for fetched data
-  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
-  const [checkoutHistory, setCheckoutHistory] = useState([]);
   const [stats, setStats] = useState({
     total_items: 0,
     low_stock: 0,
-    items_checked_out: 0,
+    categoriescount: 0,
   });
 
   // State for loading and error handling
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [socket, setSocket] = useState<Socket | null>(null);
 
   // Step 1: Authenticate with Auth0 and get the JWT token from Flask
   useEffect(() => {
@@ -137,27 +112,7 @@ export default function InventoryDashboard() {
 
         setToken(jwtToken);
       } catch (err) {
-        if (err instanceof Error) {
-          if (err instanceof Error) {
-            if (err instanceof Error) {
-              if (err instanceof Error) {
-                if (err instanceof Error) {
-                  setError(err.message);
-                } else {
-                  setError("An unknown error occurred");
-                }
-              } else {
-                setError("An unknown error occurred");
-              }
-            } else {
-              setError("An unknown error occurred");
-            }
-          } else {
-            setError("An unknown error occurred");
-          }
-        } else {
-          setError("An unknown error occurred");
-        }
+        setError(err instanceof Error ? err.message : "An unknown error occurred");
         if (err instanceof Error && (err.message.includes("Auth0") || err.message.includes("email"))) {
           router.push("/api/auth/login");
         }
@@ -184,15 +139,16 @@ export default function InventoryDashboard() {
 
         // Fetch checkout history (inventory usage)
         const usageData = await fetchWithAuth("/api/inventory-usage", token);
-        setCheckoutHistory(usageData);
+        // Assuming WebSocketContext will handle real-time updates, we just set the initial data
+        // If WebSocket hasn't connected yet, this ensures we have data
+        // Note: If WebSocketContext had a setter for inventoryUsage, we would use it here.
+        // Since it doesn't directly expose a setter in the current context, we'll rely on the WebSocket to update it.
 
         // Fetch stats
         const statsData = await fetchWithAuth("/api/stats", token);
         setStats(statsData);
       } catch (err) {
-        if (err instanceof Error) {
-          setError(err.message);
-        }
+        setError(err instanceof Error ? err.message : "Failed to fetch data");
         if (err instanceof Error && err.message.includes("Unauthorized")) {
           localStorage.removeItem("token");
           router.push("/api/auth/login");
@@ -203,123 +159,56 @@ export default function InventoryDashboard() {
     };
 
     fetchData();
-  }, [token, router]);
+  }, [token, router, setInventoryItems]);
 
- // Step 3: Set up WebSocket connection for real-time updates
- useEffect(() => {
-  if (!token) return;
+  // Step 3: Update stats whenever inventoryItems changes
+  useEffect(() => {
+    const totalItems = inventoryItems.length;
+    const lowStock = inventoryItems.filter((item) => item.quantity < item.minQuantity).length;
 
-  const socketInstance = io(`${process.env.NEXT_PUBLIC_API_URL}/realtime`, {
-    path: "/socket.io",
-    transports: ["websocket"],
-    query: { token },
-    reconnection: true,
-    reconnectionAttempts: Infinity,
-    reconnectionDelay: 1000,
-  });
-
-  socketInstance.on("connect", () => {
-    console.log("Connected to WebSocket server");
-  });
-
-  socketInstance.on("connection_status", (data) => {
-    console.log("Connection status:", data);
-  });
-
-  // Listen for inventory_items insert events
-  socketInstance.on("inventory_items_insert", (newItem: InventoryItem) => {
-    console.log("New inventory item:", newItem);
-    setInventoryItems((prev) => {
-      if (prev.some((item) => item._id === newItem._id)) return prev;
-      return [...prev, newItem];
+    const categories = Array.from(new Set(inventoryItems.map((item) => item.category || "Uncategorized")));
+    const categoriescount = categories.length;
+    setStats({
+      total_items: totalItems,
+      low_stock: lowStock,
+      categoriescount: categoriescount,
     });
-  });
+  }, [inventoryItems]);
 
-  // Listen for inventory_items update events
-  socketInstance.on("inventory_items_update", (updatedItem: InventoryItem) => {
-    console.log("Updated inventory item:", updatedItem);
-    setInventoryItems((prev) =>
-      prev.map((item) => (item._id === updatedItem._id ? updatedItem : item))
-    );
-  });
+  // Calculate dashboard stats
+  const totalItems = stats.total_items || 0;
+  const lowStockItems = stats.low_stock || 0;
+  const categoriescount = stats.categoriescount || 0;
 
-  // Listen for inventory_items delete events
-  socketInstance.on("inventory_items_delete", (data: { _id: string }) => {
-    console.log("Deleted inventory item:", data._id);
-    setInventoryItems((prev) => prev.filter((item) => item._id !== data._id));
-  });
+  // Count upcoming returns (due within 48 hours)
+  const currentDate = new Date();
+  const futureDate = new Date(currentDate);
+  futureDate.setHours(currentDate.getHours() + 48);
 
-  socketInstance.on("disconnect", () => {
-    console.log("Disconnected from WebSocket server");
-  });
-
-  socketInstance.on("connect_error", (err) => {
-    console.error("WebSocket connection error:", err.message);
-    if (err.message.includes("Invalid token")) {
-      console.log("Invalid token detected, redirecting to login...");
-      localStorage.removeItem("token");
-      router.push("/api/auth/login");
-    } else {
-      setError("Failed to connect to real-time updates. Please refresh the page.");
+  const upcomingReturns = inventoryUsage.filter(
+    (checkout: { return_date?: string; created_at: string }) => {
+      const returnDate = new Date(checkout.return_date || checkout.created_at);
+      return returnDate <= futureDate && returnDate >= currentDate;
     }
-  });
+  ).length;
 
-  setSocket(socketInstance);
-
-  // Cleanup on unmount
-  return () => {
-    socketInstance.disconnect();
-  };
-}, [token, router]);
-
-// Step 4: Update stats whenever inventoryItems changes
-useEffect(() => {
-  const totalItems = inventoryItems.length;
-  const lowStock = inventoryItems.filter((item) => item.quantity < item.minQuantity).length;
-  const itemsCheckedOut = inventoryItems.reduce(
-    (sum, item) => sum + (item.checked_out || 0),
-    0
-  );
-  setStats({
-    total_items: totalItems,
-    low_stock: lowStock,
-    items_checked_out: itemsCheckedOut,
-  });
-}, [inventoryItems]);
-
-// Calculate dashboard stats
-const totalItems = stats.total_items || 0;
-const lowStockItems = stats.low_stock || 0;
-const checkedOutItems = stats.items_checked_out || 0;
-
-// Count upcoming returns (due within 48 hours)
-const currentDate = new Date();
-const futureDate = new Date(currentDate);
-futureDate.setHours(currentDate.getHours() + 48);
-
-const upcomingReturns = checkoutHistory.filter(
-  (checkout: { return_date?: string; created_at: string }) => {
-    const returnDate = new Date(checkout.return_date || checkout.created_at);
-    return returnDate <= futureDate && returnDate >= currentDate;
+  // Handle loading and error states
+  if (loading || authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-purple-50/50 dark:bg-purple-950/50">
+        <p className="text-purple-900 dark:text-purple-50">Loading...</p>
+      </div>
+    );
   }
-).length;
 
-// Handle loading and error states
-if (loading || authLoading) {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-purple-50/50 dark:bg-purple-950/50">
-      <p className="text-purple-900 dark:text-purple-50">Loading...</p>
-    </div>
-  );
-}
+  if (error || wsError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-purple-50/50 dark:bg-purple-950/50">
+        <p className="text-red-500">{error || wsError}</p>
+      </div>
+    );
+  }
 
-if (error) {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-purple-50/50 dark:bg-purple-950/50">
-      <p className="text-red-500">{error}</p>
-    </div>
-  );
-}
   return (
     <div className="flex min-h-screen flex-col">
       <div className="border-b bg-purple-50 dark:bg-purple-950">
@@ -420,7 +309,7 @@ if (error) {
                 <CardContent>
                   <div className="text-2xl font-bold text-purple-900 dark:text-purple-50">{totalItems}</div>
                   <p className="text-xs text-purple-700 dark:text-purple-300">
-                    Across {inventoryItems.length} categories
+                    Across {categoriescount} categories
                   </p>
                 </CardContent>
               </Card>
@@ -463,7 +352,7 @@ if (error) {
                   </svg>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-purple-900 dark:text-purple-50">{checkedOutItems}</div>
+                  <div className="text-2xl font-bold text-purple-900 dark:text-purple-50">{inventoryUsage.length}</div>
                   <p className="text-xs text-purple-700 dark:text-purple-300">For current events</p>
                 </CardContent>
               </Card>
@@ -503,7 +392,7 @@ if (error) {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <RecentActivity checkoutHistory={checkoutHistory} />
+                  <RecentActivity checkoutHistory={inventoryUsage} />
                 </CardContent>
               </Card>
             </div>
@@ -546,7 +435,7 @@ if (error) {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <CheckoutForm inventoryItems={inventoryItems} />
+                {/* <CheckoutForm inventoryItems={inventoryItems} /> */}
               </CardContent>
             </Card>
           </TabsContent>
@@ -560,7 +449,7 @@ if (error) {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ReportsView inventoryItems={inventoryItems} checkoutHistory={checkoutHistory} />
+                <ReportsView inventoryItems={inventoryItems} checkoutHistory={inventoryUsage} />
               </CardContent>
             </Card>
           </TabsContent>

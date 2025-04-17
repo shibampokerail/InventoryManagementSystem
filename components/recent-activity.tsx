@@ -4,7 +4,22 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowDownIcon, ArrowUpIcon, RefreshCw } from "lucide-react";
 
-export function RecentActivity({ checkoutHistory }) {
+interface CheckoutRecord {
+  _id: string;
+  status: string;
+  created_at?: string;
+  user_name?: string;
+  user_id?: string;
+  quantity?: number;
+  item_name?: string;
+  item_id?: string;
+}
+
+interface RecentActivityProps {
+  checkoutHistory: CheckoutRecord[];
+}
+
+export function RecentActivity({ checkoutHistory }: RecentActivityProps) {
   // Map checkoutHistory (from database via Flask) to match the expected activity structure
   const activities = checkoutHistory.map((record) => {
     // Determine the action type based on the record

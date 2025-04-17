@@ -94,10 +94,20 @@ export function EditItemForm({ item, onSuccess }: EditItemFormProps) {
     setLoading(false);
   }, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  // In EditItemForm component, add debugging to handleInputChange:
+const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const { name, value } = e.target;
+  console.log(`Input changed: ${name} = ${value}`);
+  setFormData((prev) => {
+    const updated = { ...prev, [name]: value };
+    console.log("Updated form data:", updated);
+    return updated;
+  });
+};
+  // const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  //   const { name, value } = e.target;
+  //   setFormData((prev) => ({ ...prev, [name]: value }));
+  // };
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
