@@ -57,7 +57,8 @@ def get_collections():
         "inventory_usage": db.InventoryUsage,
         "slack_management": db.SlackManagement
     }
-
+retry_delay = 5
+max_delay = 60
 # Function to watch a specific collection and broadcast changes
 def watch_collection(collection_name, collection, socketio):
     while True:
@@ -99,9 +100,12 @@ def watch_collection(collection_name, collection, socketio):
                         socketio.emit(f"{collection_name}_delete", {"_id": document_id}, namespace="/realtime")
                     else:
                         print(f"Unhandled operation type {operation} in {collection_name}: {change}")
+                    retry_delay = 5  # Reset delay on success
         except Exception as e:
             print(f"Error watching {collection_name}: {e}. Retrying in 5 seconds...")
-            time.sleep(5)
+            time.sleep(retry_delay)
+            retry_delay = min(retry_delay * 2, max_delay)
+
 
 # Start watching all collections in separate threads
 def start_watching_collections(socketio: SocketIO):
@@ -196,13 +200,45 @@ def logout():
 # Stats endpoint
 @api_key_or_jwt_required()
 def get_stats():
+    """
+    Retrieve statistics about inventory, categories, orders, and vendors.
+    
+    Returns a dictionary with the following statistics:
+    - total_items: Total number of items in InventoryItems.
+    - total_categories: Total number of unique categories in InventoryItems.
+    - low_stock: Number of items where quantity is less than minQuantity.
+    - total_orders_placed: Total number of orders with status 'placed' or 'received'.
+    - total_vendors: Total number of vendors in the Vendors collection.
+    """
     db = connect_to_mongo()
+
+    # Total items
     total_items = db.InventoryItems.count_documents({})
-    low_stock = db.InventoryItems.count_documents({"quantity": {"$lt": 10}})
-    items_checked_out = sum(item.get("checked_out", 0) for item in db.InventoryItems.find())
+
+    # Total categories (distinct categories in InventoryItems)
+    total_categories = len(db.InventoryItems.distinct("category"))
+
+    # Low stock items (quantity < minQuantity)
+    low_stock = 0
+    for item in db.InventoryItems.find({}, {"quantity": 1, "minQuantity": 1}):
+        quantity = item.get("quantity", 0)
+        # Use a default minQuantity of 10 if not specified
+        min_quantity = item.get("minQuantity", 1)
+        if quantity < min_quantity:
+            low_stock += 1
+
+    # Total orders placed (count orders with status "placed" or "received")
+    total_orders_placed = db.Orders.count_documents({
+        "status": {"$in": ["placed"]}
+    })
+
+    # Total vendors (count documents in Vendors collection)
+    total_vendors = db.Vendors.count_documents({})
 
     return {
         "total_items": total_items,
+        "total_categories": total_categories,
         "low_stock": low_stock,
-        "items_checked_out": items_checked_out,
+        "total_orders_placed": total_orders_placed,
+        "total_vendors": total_vendors,
     }

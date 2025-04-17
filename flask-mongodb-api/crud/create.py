@@ -34,6 +34,7 @@ def create_vendor():
     new_vendor = {
         'name': data['name'],
         'contact': data.get('contact', ''),
+        'phone': data.get('phone', ''),
         'created_at': datetime.utcnow()
     }
     result = db.Vendors.insert_one(new_vendor)
@@ -169,19 +170,40 @@ def create_log():
 def create_inventory_usage():
     db = connect_to_mongo()
     data = request.get_json()
-    if not data or not all(key in data for key in ['itemId', 'userId', 'quantityUsed']):
-        return jsonify({'error': 'Missing required fields: itemId, userId, quantityUsed'}), 400
 
+    # Validate required fields
+    required_fields = ["itemId", "userId", "quantity", "action"]
+    if not data or not all(key in data for key in required_fields):
+        return jsonify({"error": f"Missing required fields: {', '.join(required_fields)}"}), 400
+    quantity = int(data["quantity"])
+    action = data["action"]
+    # Validate ObjectId fields
+    try:
+        item_id = ObjectId(data["itemId"])
+        user_id = ObjectId(data["userId"])
+    except Exception as e:
+        return jsonify({"error": "Invalid itemId or userId format"}), 400
+
+    # Create the new inventory usage record
     new_usage = {
-        'itemId': ObjectId(data['itemId']),
-        'userId': ObjectId(data['userId']),
-        'quantityUsed': int(data['quantityUsed']),
-        'created_at': datetime.utcnow()
+        "itemId": item_id,
+        "userId": user_id,
+        "quantity": quantity,
+        "action": action,
+        "timestamp": datetime.utcnow()
     }
+
+    # Insert into the database
     result = db.InventoryUsage.insert_one(new_usage)
-    new_usage['_id'] = str(result.inserted_id)
-    new_usage['itemId'] = str(new_usage['itemId'])
-    new_usage['userId'] = str(new_usage['userId'])
+
+    # Prepare the response
+    new_usage["_id"] = str(result.inserted_id)
+    new_usage["itemId"] = str(new_usage["itemId"])
+    new_usage["userId"] = str(new_usage["userId"])
+    new_usage["action"] = new_usage["action"]
+    new_usage["timestamp"] = new_usage["timestamp"].isoformat() + "Z"  # Match sample format
+    new_usage["quantity"] = new_usage["quantity"]
+
     return jsonify(new_usage), 201
 
 

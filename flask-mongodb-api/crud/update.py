@@ -33,7 +33,7 @@ def update_vendor(id):
     if not data:
         return jsonify({'error': 'No data provided'}), 400
 
-    update_data = {k: v for k, v in data.items() if k in ['name', 'contact']}
+    update_data = {k: v for k, v in data.items() if k in ['name', 'contact', 'phone']}
     if not update_data:
         return jsonify({'error': 'No valid fields to update'}), 400
 
