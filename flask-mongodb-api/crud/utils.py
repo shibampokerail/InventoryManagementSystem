@@ -9,12 +9,14 @@ from datetime import datetime
 from datetime import timedelta
 import time
 from flask_socketio import SocketIO
+import requests
+
 # Load environment variables
 load_dotenv()
 MONGO_URI = os.getenv('MONGO_URI')
 DB_NAME = os.getenv('DB_NAME')
 SLACKBOT_API_KEY = os.getenv("SLACKBOT_API_KEY")
-
+SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
 # MongoDB Connection
 client = None
 db = None
@@ -42,6 +44,16 @@ def convert_to_json_serializable(obj):
     elif isinstance(obj, list):
         return [convert_to_json_serializable(item) for item in obj]
     return obj
+
+#sends message to slack when item has been updated.
+def send_slack_message(text):
+    payload = {"text": text}
+    try:
+        response = requests.post(SLACK_WEBHOOK_URL, json=payload)
+        response.raise_for_status()
+        print(" Slack message sent.")
+    except Exception as e:
+        print(f" Failed to send Slack message: {e}")
 
 # Define all collections to watch
 def get_collections():
@@ -77,13 +89,12 @@ def watch_collection(collection_name, collection, socketio):
                         new_doc = convert_to_json_serializable(new_doc)
                         print(f"Emitting insert event for {collection_name}: {new_doc}")
                         socketio.emit(f"{collection_name}_insert", new_doc, namespace="/realtime")
-                    elif operation == "update":
+                   elif operation == "update":
                         updated_doc = None
                         if "fullDocument" in change:
                             updated_doc = change["fullDocument"]
                             updated_doc["_id"] = str(updated_doc["_id"])
                         else:
-                            # Fetch the document manually if fullDocument is missing
                             print(f"No fullDocument in update change for {collection_name}, fetching manually...")
                             updated_doc = collection.find_one({"_id": ObjectId(document_id)})
                             if updated_doc:
@@ -91,10 +102,15 @@ def watch_collection(collection_name, collection, socketio):
                             else:
                                 print(f"Document {document_id} not found after update, skipping emit.")
                                 continue
-
+                    
                         updated_doc = convert_to_json_serializable(updated_doc)
                         print(f"Emitting update event for {collection_name}: {updated_doc}")
                         socketio.emit(f"{collection_name}_update", updated_doc, namespace="/realtime")
+                    
+                        # Send to Slack
+                        item_name = updated_doc.get("name") or updated_doc.get("item") or "an item"
+                        send_slack_message(f"*{collection_name.replace('_', ' ').title()}* was updated: `{item_name}` (ID: {document_id})")
+
                     elif operation == "delete":
                         print(f"Emitting delete event for {collection_name}: {document_id}")
                         socketio.emit(f"{collection_name}_delete", {"_id": document_id}, namespace="/realtime")
