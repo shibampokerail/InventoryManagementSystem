@@ -205,17 +205,7 @@ export default function InventoryDashboard() {
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight text-purple-900 dark:text-purple-50">
             Inventory Dashboard{" "}
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                localStorage.removeItem("token");
-                window.location.href = "/api/auth/logout";
-              }}
-              className="text-purple-700 dark:text-purple-300 hover:underline"
-            >
-              Logout
-            </a>
+          
           </h2>
           <div className="flex items-center space-x-2">
             <Dialog>
@@ -259,12 +249,7 @@ export default function InventoryDashboard() {
             >
               Inventory
             </TabsTrigger>
-            <TabsTrigger
-              value="checkout"
-              className="data-[state=active]:bg-purple-700 data-[state=active]:text-white dark:text-purple-100 dark:data-[state=inactive]:text-purple-300"
-            >
-              Check Out
-            </TabsTrigger>
+
             <TabsTrigger
               value="reports"
               className="data-[state=active]:bg-purple-700 data-[state=active]:text-white dark:text-purple-100 dark:data-[state=inactive]:text-purple-300"
@@ -357,7 +342,7 @@ export default function InventoryDashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <RecentActivity checkoutHistory={inventoryUsage} />
+                  <RecentActivity />
                 </CardContent>
               </Card>
             </div>
@@ -391,20 +376,6 @@ export default function InventoryDashboard() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="checkout" className="space-y-4">
-            <Card className="border-purple-200 dark:border-purple-800">
-              <CardHeader>
-                <CardTitle className="text-purple-900 dark:text-purple-50">Check Out Items</CardTitle>
-                <CardDescription className="text-purple-700 dark:text-purple-300">
-                  Request items for events and activities
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {/* <CheckoutForm inventoryItems={inventoryItems} /> */}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           <TabsContent value="reports" className="space-y-4">
             <Card className="border-purple-200 dark:border-purple-800">
               <CardHeader>
@@ -414,7 +385,7 @@ export default function InventoryDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ReportsView inventoryItems={inventoryItems} checkoutHistory={inventoryUsage} />
+                <ReportsView/>
               </CardContent>
             </Card>
           </TabsContent>

@@ -32,8 +32,7 @@ interface ReportItemUsageProps {
   onUsageReported?: () => void; // Callback to notify parent component
 }
 
-const actions = ["damaged", "stolen", "lost", "other"];
-
+const actions = ["Damaged", "Stolen", "Lost", "CheckedOut", "returned"];
 const getToken = () => {
   return localStorage.getItem("token");
 };

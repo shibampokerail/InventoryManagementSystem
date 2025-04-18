@@ -260,20 +260,7 @@ export default function ProfilePage() {
             )}
           </div>
         </div>
-
-        <Tabs defaultValue="personal" className="space-y-4">
-          <TabsList className="bg-purple-100 dark:bg-purple-900">
-            <TabsTrigger
-              value="personal"
-              className="data-[state=active]:bg-purple-700 data-[state=active]:text-white dark:text-purple-100 dark:data-[state=inactive]:text-purple-300"
-            >
-              <User className="mr-2 h-4 w-4" />
-              Personal Information
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="personal" className="space-y-4">
-            <Card className="border-purple-200 dark:border-purple-800">
+        <Card className="border-purple-200 dark:border-purple-800">
               <CardHeader>
                 <CardTitle className="text-purple-900 dark:text-purple-50">Profile Information</CardTitle>
                 <CardDescription className="text-purple-700 dark:text-purple-300">
@@ -409,8 +396,6 @@ export default function ProfilePage() {
                 </Button>
               </CardFooter>
             </Card>
-          </TabsContent>
-        </Tabs>
       </div>
     </div>
   );

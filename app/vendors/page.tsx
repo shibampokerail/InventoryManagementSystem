@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Vendor, VendorItem } from "@/types/vendors";
 import { InventoryItem } from "@/types/inventory";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,7 +25,6 @@ import { useRouter } from "next/navigation";
 import { useWebSocket } from "@/context/WebSocketContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Utility function to get the JWT token from localStorage
 const getToken = () => localStorage.getItem("token");
@@ -63,7 +62,7 @@ const fetchWithAuth = async (endpoint: string, options: { method?: string; body?
 export default function VendorsPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const { vendors, setVendors, inventoryItems, setInventoryItems, vendorItems, error: wsError } = useWebSocket();
+  const { vendors, setVendors, inventoryItems, setInventoryItems, vendorItems, setVendorItems, error: wsError } = useWebSocket();
   const [isAddingVendor, setIsAddingVendor] = useState(false);
   const [isEditingVendor, setIsEditingVendor] = useState(false);
   const [isAssigningItems, setIsAssigningItems] = useState(false);
@@ -78,6 +77,7 @@ export default function VendorsPage() {
   const [error, setError] = useState<string | null>(null);
   const [vendorItemsCache, setVendorItemsCache] = useState<{ [vendorId: string]: InventoryItem[] }>({});
   const [activeVendorTab, setActiveVendorTab] = useState<string | null>(null);
+  const [isVendorItemsLoading, setIsVendorItemsLoading] = useState(false);
 
   const [newVendor, setNewVendor] = useState({
     name: "",
@@ -113,7 +113,7 @@ export default function VendorsPage() {
       if (!Array.isArray(vendorItemsData)) {
         throw new Error("Vendor Items API response is not an array");
       }
-      // Note: We rely on WebSocketContext for vendorItems state, but initial fetch can help
+      setVendorItems(vendorItemsData);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch data. Please try again.");
       if (err instanceof Error && err.message.includes("Unauthorized")) {
@@ -128,9 +128,12 @@ export default function VendorsPage() {
   // Fetch items for a specific vendor
   const fetchItemsByVendor = async (vendorId: string) => {
     if (vendorItemsCache[vendorId]) {
+      console.log(`Returning cached items for vendor ${vendorId}`);
       return vendorItemsCache[vendorId];
     }
     try {
+      setIsVendorItemsLoading(true);
+      console.log(`Fetching items for vendor ${vendorId}`);
       const items = await fetchWithAuth(`/api/vendors/${vendorId}/items`);
       if (!Array.isArray(items)) {
         throw new Error("Items API response is not an array");
@@ -138,11 +141,16 @@ export default function VendorsPage() {
       const validItems = items.filter(
         (item) => item && typeof item === "object" && item._id && item.name && item.category
       );
-      setVendorItemsCache((prev) => ({ ...prev, [vendorId]: validItems }));
+      setVendorItemsCache((prev) => {
+        console.log(`Caching ${validItems.length} items for vendor ${vendorId}`);
+        return { ...prev, [vendorId]: validItems };
+      });
       return validItems;
     } catch (err) {
       console.error(`Failed to fetch items for vendor ${vendorId}:`, err);
       return [];
+    } finally {
+      setIsVendorItemsLoading(false);
     }
   };
 
@@ -150,13 +158,26 @@ export default function VendorsPage() {
     fetchData();
   }, [router]);
 
-  // Set initial active tab after vendors are loaded
+  // Set initial active vendor for dropdown
   useEffect(() => {
     if (vendors.length > 0 && !activeVendorTab) {
       setActiveVendorTab(vendors[0]._id);
       fetchItemsByVendor(vendors[0]._id);
     }
   }, [vendors]);
+
+  // Refresh vendorItemsCache when vendorItems changes via WebSocket
+  useEffect(() => {
+    if (activeVendorTab) {
+      console.log(`vendorItems updated, refreshing cache for vendor ${activeVendorTab}`);
+      setVendorItemsCache((prev) => {
+        const newCache = { ...prev };
+        delete newCache[activeVendorTab]; // Invalidate cache
+        return newCache;
+      });
+      fetchItemsByVendor(activeVendorTab);
+    }
+  }, [vendorItems, activeVendorTab]);
 
   // Handle input changes for add/edit forms
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -285,17 +306,32 @@ export default function VendorsPage() {
   };
 
   // Open dialog to assign items to a vendor
-  const handleAssignItems = (vendor: Vendor) => {
+  const handleAssignItems = async (vendor: Vendor) => {
     setSelectedVendor(vendor);
-    // Initialize selectedItems with currently assigned items
-    const assignedItemIds = vendorItems
-      .filter((vi) => vi.vendorId === vendor._id)
-      .map((vi) => vi.itemId);
-    setSelectedItems(assignedItemIds);
-    setItemsToUnassign([]);
-    setSelectAll(false);
-    setCategoryFilter("all");
-    setIsAssigningItems(true);
+    try {
+      // Fetch latest vendorItems to ensure accuracy
+      const vendorItemsData = await fetchWithAuth(`/api/vendor-items?vendorId=${vendor._id}`);
+      if (!Array.isArray(vendorItemsData)) {
+        throw new Error("Vendor Items API response is not an array");
+      }
+      setVendorItems(vendorItemsData);
+      const assignedItemIds = vendorItemsData
+        .filter((vi: VendorItem) => vi.vendorId === vendor._id)
+        .map((vi: VendorItem) => vi.itemId);
+      console.log(`Initializing selectedItems for vendor ${vendor._id}:`, assignedItemIds);
+      setSelectedItems(assignedItemIds);
+      setItemsToUnassign([]);
+      setSelectAll(false);
+      setCategoryFilter("all");
+      setIsAssigningItems(true);
+    } catch (err) {
+      console.error("Failed to fetch vendor items:", err);
+      toast({
+        title: "Error",
+        description: "Failed to load assigned items. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Handle category filter change
@@ -326,47 +362,57 @@ export default function VendorsPage() {
   };
 
   // Handle individual item selection
-  const handleItemSelect = (itemId: string) => {
-    const isCurrentlyAssigned = vendorItems.some(
-      (vi) => vi.vendorId === selectedVendor?._id && vi.itemId === itemId
-    );
+  const handleItemSelect = useCallback(
+    (itemId: string) => {
+      const isCurrentlyAssigned = vendorItems.some(
+        (vi) => vi.vendorId === selectedVendor?._id && vi.itemId === itemId
+      );
 
-    setSelectedItems((prev) => {
-      if (prev.includes(itemId)) {
-        // Deselecting an item
-        const newSelection = prev.filter((id) => id !== itemId);
-        if (isCurrentlyAssigned) {
-          // Mark for unassignment
-          const vendorItemId = vendorItems.find(
-            (vi) => vi.vendorId === selectedVendor?._id && vi.itemId === itemId
-          )?._id;
-          if (vendorItemId) {
-            setItemsToUnassign((prevUnassign) => [...prevUnassign, vendorItemId]);
+      setSelectedItems((prev) => {
+        if (prev.includes(itemId)) {
+          console.log(`Deselecting item: ${itemId}`);
+          const newSelection = prev.filter((id) => id !== itemId);
+          if (isCurrentlyAssigned) {
+            const vendorItem = vendorItems.find(
+              (vi) => vi.vendorId === selectedVendor?._id && vi.itemId === itemId
+            );
+            if (vendorItem) {
+              const vendorItemId = vendorItem._id;
+              console.log(`Marking for unassignment: ${vendorItemId}`);
+              setItemsToUnassign((prevUnassign) => {
+                if (prevUnassign.includes(vendorItemId)) {
+                  console.log(`vendorItemId ${vendorItemId} already in itemsToUnassign`);
+                  return prevUnassign;
+                }
+                return [...prevUnassign, vendorItemId];
+              });
+            }
           }
-        }
-        setSelectAll(false);
-        return newSelection;
-      } else {
-        // Selecting an item
-        const newSelection = [...prev, itemId];
-        if (isCurrentlyAssigned) {
-          // Remove from unassign list if re-selected
-          const vendorItemId = vendorItems.find(
-            (vi) => vi.vendorId === selectedVendor?._id && vi.itemId === itemId
-          )?._id;
-          if (vendorItemId) {
-            setItemsToUnassign((prevUnassign) => prevUnassign.filter((id) => id !== vendorItemId));
+          setSelectAll(false);
+          return newSelection;
+        } else {
+          console.log(`Selecting item: ${itemId}`);
+          const newSelection = [...prev, itemId];
+          if (isCurrentlyAssigned) {
+            const vendorItem = vendorItems.find(
+              (vi) => vi.vendorId === selectedVendor?._id && vi.itemId === itemId
+            );
+            if (vendorItem) {
+              const vendorItemId = vendorItem._id;
+              console.log(`Removing from unassignment: ${vendorItemId}`);
+              setItemsToUnassign((prevUnassign) => prevUnassign.filter((id) => id !== vendorItemId));
+            }
           }
+          const filteredItemIds = filteredInventoryItems.map((item) => item._id);
+          if (newSelection.length === filteredItemIds.length) {
+            setSelectAll(true);
+          }
+          return newSelection;
         }
-        // Check if all filtered items are selected
-        const filteredItemIds = filteredInventoryItems.map((item) => item._id);
-        if (newSelection.length === filteredItemIds.length) {
-          setSelectAll(true);
-        }
-        return newSelection;
-      }
-    });
-  };
+      });
+    },
+    [selectedVendor, vendorItems]
+  );
 
   // Assign and unassign items to/from the vendor
   const handleAssignItemsToVendor = async () => {
@@ -380,13 +426,14 @@ export default function VendorsPage() {
     }
 
     try {
-      // Items to assign (newly selected, not currently assigned)
       const existingAssignedItemIds = vendorItems
         .filter((vi) => vi.vendorId === selectedVendor._id)
         .map((vi) => vi.itemId);
       const itemsToAssign = selectedItems.filter((itemId) => !existingAssignedItemIds.includes(itemId));
 
-      // Assign new items
+      console.log(`Items to assign: ${itemsToAssign.length}, Items to unassign: ${itemsToUnassign.length}`);
+      console.log("itemsToUnassign:", itemsToUnassign);
+
       const assignPromises = itemsToAssign.map((itemId) =>
         fetchWithAuth("/api/vendor-items", {
           method: "POST",
@@ -397,8 +444,8 @@ export default function VendorsPage() {
         })
       );
 
-      // Unassign items
-      const unassignPromises = itemsToUnassign.map((vendorItemId) =>
+      const uniqueItemsToUnassign = Array.from(new Set(itemsToUnassign));
+      const unassignPromises = uniqueItemsToUnassign.map((vendorItemId) =>
         fetchWithAuth(`/api/vendor-items/${vendorItemId}`, {
           method: "DELETE",
         })
@@ -408,22 +455,25 @@ export default function VendorsPage() {
 
       toast({
         title: "Items Updated",
-        description: `Assigned ${itemsToAssign.length} item(s) and unassigned ${itemsToUnassign.length} item(s) for ${selectedVendor.name}.`,
+        description: `Assigned ${itemsToAssign.length} item(s) and unassigned ${uniqueItemsToUnassign.length} item(s) for ${selectedVendor.name}.`,
         variant: "success",
       });
 
-      // Clear cache for this vendor to force refresh
+      // Clear and refetch cache for the selected vendor
       setVendorItemsCache((prev) => {
         const newCache = { ...prev };
         delete newCache[selectedVendor._id];
+        console.log(`Cleared cache for vendor ${selectedVendor._id}`);
         return newCache;
       });
+      await fetchItemsByVendor(selectedVendor._id);
 
       setIsAssigningItems(false);
       setSelectedItems([]);
       setItemsToUnassign([]);
       setSelectAll(false);
     } catch (err) {
+      console.error("Assignment error:", err);
       toast({
         title: "Error",
         description: err instanceof Error ? err.message : "Failed to update item assignments. Please try again.",
@@ -464,8 +514,8 @@ export default function VendorsPage() {
     });
   }, [inventoryItems, categoryFilter]);
 
-  // Handle tab change
-  const handleTabChange = async (vendorId: string) => {
+  // Handle vendor selection for dropdown
+  const handleVendorSelect = async (vendorId: string) => {
     setActiveVendorTab(vendorId);
     await fetchItemsByVendor(vendorId);
   };
@@ -675,69 +725,62 @@ export default function VendorsPage() {
                 No vendors available
               </div>
             ) : (
-              <Tabs value={activeVendorTab || vendors[0]._id} onValueChange={handleTabChange}>
-                <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 bg-purple-100 dark:bg-purple-900">
-                  {vendors.map((vendor) => (
-                    <TabsTrigger
-                      key={vendor._id}
-                      value={vendor._id}
-                      className="text-purple-900 dark:text-purple-50 data-[state=active]:bg-purple-200 dark:data-[state=active]:bg-purple-800"
-                    >
-                      {vendor.name}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-                {vendors.map((vendor) => (
-                  <TabsContent key={vendor._id} value={vendor._id}>
-                    <div className="mt-4">
-                      <div className="rounded-md border border-purple-200 dark:border-purple-800">
-                        <Table>
-                          <TableHeader className="bg-purple-100 dark:bg-purple-900">
-                            <TableRow>
-                              <TableHead className="text-purple-900 dark:text-purple-50">Item Name</TableHead>
-                              <TableHead className="text-purple-900 dark:text-purple-50">Category</TableHead>
-                              <TableHead className="text-purple-900 dark:text-purple-50">Quantity</TableHead>
-                              <TableHead className="text-purple-900 dark:text-purple-50">Location</TableHead>
+              <div>
+                <Select value={activeVendorTab || vendors[0]._id} onValueChange={handleVendorSelect}>
+                  <SelectTrigger className="w-[300px] border-purple-200 dark:border-purple-800 mb-4">
+                    <SelectValue placeholder="Select a vendor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vendors.map((vendor) => (
+                      <SelectItem key={vendor._id} value={vendor._id}>
+                        {vendor.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {isVendorItemsLoading ? (
+                  <div className="text-center py-4 text-purple-700 dark:text-purple-300">
+                    Loading items...
+                  </div>
+                ) : (
+                  <div className="rounded-md border border-purple-200 dark:border-purple-800">
+                    <Table>
+                      <TableHeader className="bg-purple-100 dark:bg-purple-900">
+                        <TableRow>
+                          <TableHead className="text-purple-900 dark:text-purple-50">Item Name</TableHead>
+                          <TableHead className="text-purple-900 dark:text-purple-50">Category</TableHead>
+                          <TableHead className="text-purple-900 dark:text-purple-50">Quantity</TableHead>
+                          <TableHead className="text-purple-900 dark:text-purple-50">Location</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(vendorItemsCache[activeVendorTab || vendors[0]._id] || []).length === 0 ? (
+                          <TableRow>
+                            <TableCell
+                              colSpan={4}
+                              className="text-center py-4 text-purple-700 dark:text-purple-300"
+                            >
+                              No items assigned to this vendor
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          (vendorItemsCache[activeVendorTab || vendors[0]._id] || []).map((item) => (
+                            <TableRow
+                              key={item._id}
+                              className="hover:bg-purple-50 dark:hover:bg-purple-900/50"
+                            >
+                              <TableCell className="text-purple-900 dark:text-purple-50">{item.name}</TableCell>
+                              <TableCell className="text-purple-700 dark:text-purple-300">{item.category}</TableCell>
+                              <TableCell className="text-purple-700 dark:text-purple-300">{item.quantity}</TableCell>
+                              <TableCell className="text-purple-700 dark:text-purple-300">{item.location}</TableCell>
                             </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {(vendorItemsCache[vendor._id] || []).length === 0 ? (
-                              <TableRow>
-                                <TableCell
-                                  colSpan={4}
-                                  className="text-center py-4 text-purple-700 dark:text-purple-300"
-                                >
-                                  No items assigned to this vendor
-                                </TableCell>
-                              </TableRow>
-                            ) : (
-                              (vendorItemsCache[vendor._id] || []).map((item) => (
-                                <TableRow
-                                  key={item._id}
-                                  className="hover:bg-purple-50 dark:hover:bg-purple-900/50"
-                                >
-                                  <TableCell className="text-purple-900 dark:text-purple-50">
-                                    {item.name}
-                                  </TableCell>
-                                  <TableCell className="text-purple-700 dark:text-purple-300">
-                                    {item.category}
-                                  </TableCell>
-                                  <TableCell className="text-purple-700 dark:text-purple-300">
-                                    {item.quantity}
-                                  </TableCell>
-                                  <TableCell className="text-purple-700 dark:text-purple-300">
-                                    {item.location}
-                                  </TableCell>
-                                </TableRow>
-                              ))
-                            )}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </div>
-                  </TabsContent>
-                ))}
-              </Tabs>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
             )}
           </CardContent>
         </Card>

@@ -1,82 +1,217 @@
-// components/recent-activity.tsx
 "use client";
 
+import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowDownIcon, ArrowUpIcon, RefreshCw } from "lucide-react";
 
-interface CheckoutRecord {
+interface UsageRecord {
   _id: string;
-  status: string;
-  created_at?: string;
-  user_name?: string;
-  user_id?: string;
-  quantity?: number;
-  item_name?: string;
-  item_id?: string;
+  itemId: string;
+  userId: string;
+  quantity: number;
+  action: string;
+  timestamp: string;
 }
 
-interface RecentActivityProps {
-  checkoutHistory: CheckoutRecord[];
+interface InventoryItem {
+  _id: string;
+  name: string;
 }
 
-export function RecentActivity({ checkoutHistory }: RecentActivityProps) {
-  // Map checkoutHistory (from database via Flask) to match the expected activity structure
-  const activities = checkoutHistory.map((record) => {
-    // Determine the action type based on the record
-    const action =
-      record.status === "returned"
-        ? "returned"
-        : record.status === "added"
-        ? "added"
-        : record.status === "updated"
-        ? "updated count"
-        : "checked out"; // Default to "checked out" for active checkouts
+interface User {
+  name: string;
+}
 
-    // Format the timestamp (using created_at from the database)
-    const timestamp = record.created_at
-      ? new Date(record.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-      : "N/A";
+interface Activity {
+  id: string;
+  user: { name: string; avatar: string };
+  action: string;
+  quantity: number;
+  item: string;
+  timestamp: string;
+}
 
-    // Mock user data (since the database might not store full user details directly)
-    const user = {
-      name: record.user_name || `User ${record.user_id || "Unknown"}`, // Use user_name if stored, else fallback
-      avatar: record.user_id ? record.user_id.slice(0, 2).toUpperCase() : "UN", // Generate initials
+export function RecentActivity() {
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUsageRecords = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Fetch all inventory usage records
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/inventory-usage`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch usage records: ${response.statusText}`);
+        }
+
+        const usageRecords: UsageRecord[] = await response.json();
+
+        // Filter out daily-usages
+        const filteredRecords = usageRecords.filter(
+          (record) => record.action !== "daily-usages"
+        );
+
+        // Fetch item names and user names for each record
+        const activitiesPromises = filteredRecords.map(async (record) => {
+          // Fetch item name
+          let itemName = `Item ${record.itemId}`;
+          try {
+            const itemResponse = await fetch(
+              `${process.env.NEXT_PUBLIC_API_URL}/api/inventory-items/${record.itemId}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
+              }
+            );
+            if (itemResponse.ok) {
+              const item: InventoryItem = await itemResponse.json();
+              itemName = item.name;
+            }
+          } catch (err) {
+            console.warn(`Failed to fetch item ${record.itemId}:`, err);
+          }
+
+          // Fetch user name
+          let userName = `User ${record.userId}`;
+          try {
+            const userResponse = await fetch(
+              `${process.env.NEXT_PUBLIC_API_URL}/api/users/${record.userId}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
+              }
+            );
+            if (userResponse.ok) {
+              const user: User = await userResponse.json();
+              userName = user.name;
+            }
+          } catch (err) {
+            console.warn(`Failed to fetch user ${record.userId}:`, err);
+          }
+
+          const userAvatar = userName.slice(0, 2).toUpperCase();
+
+          // Map action to display text with reordered format for reported actions
+          const actionMap: { [key: string]: string } = {
+            reportedDamaged: "reported damaged",
+            reportedStolen: "reported stolen",
+            reportedLost: "reported lost",
+            checkedOut: "checked out",
+            returned: "returned",
+            checkout: "checked out", // Handle potential typo in sample dataksbvids;J c;KJ C;kj 
+          };
+          const baseAction = actionMap[record.action] || record.action;
+
+          // Reorder for reported actions: "reported <quantity> <action> item"
+          let action = baseAction;
+          if (["reported damaged", "reported stolen", "reported lost"].includes(baseAction)) {
+            action = `reported ${record.quantity} ${baseAction.split(" ")[1]} item`;
+          } else {
+            action = `${baseAction} ${record.quantity} item`;
+          }
+
+          // Format timestamp
+          const timestamp = record.timestamp
+            ? new Date(record.timestamp).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "N/A";
+
+          return {
+            id: record._id,
+            user: { name: userName, avatar: userAvatar },
+            action,
+            quantity: record.quantity || 1,
+            item: itemName,
+            timestamp,
+          };
+        });
+
+        const resolvedActivities = await Promise.all(activitiesPromises);
+
+        // Sort by timestamp (newest first) and take top 5
+        const sortedActivities = resolvedActivities
+          .sort(
+            (a, b) =>
+              new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          )
+          .slice(0, 5);
+
+        setActivities(sortedActivities);
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to load recent activity.";
+        setError(errorMessage);
+        console.error("Error fetching usage records:", err);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    return {
-      id: record._id,
-      user,
-      action,
-      quantity: record.quantity || 1,
-      item: record.item_name || `Item ${record.item_id || "Unknown"}`, // Use item_name if stored, else fallback
-      timestamp,
-    };
-  });
+    fetchUsageRecords();
+  }, []);
 
-  // Show only the first 5 activities
-  const displayActivities = activities.slice(0, 5);
+  if (isLoading) {
+    return (
+      <div className="text-purple-700 dark:text-purple-300">
+        Loading recent activity...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-red-500">
+        Error: {error}
+      </div>
+    );
+  }
+
+  if (activities.length === 0) {
+    return (
+      <div className="text-purple-700 dark:text-purple-300">
+        No recent activity found.
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
-      {displayActivities.map((activity) => (
+      {activities.map((activity) => (
         <div className="flex items-center" key={activity.id}>
-          <Avatar className="h-9 w-9 border-2 border-purple-200 dark:border-purple-700">
-            <AvatarImage src="/placeholder.svg?height=36&width=36" alt={activity.user.name} />
-            <AvatarFallback className="bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-100">
-              {activity.user.avatar}
-            </AvatarFallback>
-          </Avatar>
+
           <div className="ml-4 space-y-1">
-            <p className="text-sm font-medium text-purple-900 dark:text-purple-50">{activity.user.name}</p>
+            <p className="text-sm font-medium text-purple-900 dark:text-purple-50">
+              {activity.user.name}
+            </p>
             <p className="text-sm text-purple-700 dark:text-purple-300">
-              {activity.action} {activity.quantity} {activity.item}
+              {activity.action}
             </p>
           </div>
           <div className="ml-auto text-xs text-purple-600 dark:text-purple-400 flex items-center">
-            {activity.action === "checked out" && <ArrowUpIcon className="h-3 w-3 mr-1 text-amber-500" />}
-            {activity.action === "returned" && <ArrowDownIcon className="h-3 w-3 mr-1 text-green-500" />}
-            {activity.action === "added" && <ArrowDownIcon className="h-3 w-3 mr-1 text-green-500" />}
-            {activity.action === "updated count" && <RefreshCw className="h-3 w-3 mr-1 text-blue-500" />}
+            {activity.action.includes("checked out") && (
+              <ArrowUpIcon className="h-3 w-3 mr-1 text-amber-500" />
+            )}
+            {activity.action.includes("returned") && (
+              <ArrowDownIcon className="h-3 w-3 mr-1 text-green-500" />
+            )}
+            {(activity.action.includes("reported damaged") ||
+              activity.action.includes("reported stolen") ||
+              activity.action.includes("reported lost")) && (
+              <RefreshCw className="h-3 w-3 mr-1 text-red-500" />
+            )}
             {activity.timestamp}
           </div>
         </div>
