@@ -19,7 +19,14 @@ def delete_vendor(id):
     result = db.Vendors.delete_one({'_id': ObjectId(id)})
     if result.deleted_count == 0:
         return jsonify({'error': 'Vendor not found'}), 404
-    return jsonify({'message': 'Vendor deleted successfully'}), 200
+
+    # Delete all VendorItems linked to the deleted Vendor
+    vendor_items_result = db.VendorItems.delete_many({'vendorId': ObjectId(id)})
+
+    return jsonify({
+        'message': 'Vendor deleted successfully',
+        'vendor_items_deleted': vendor_items_result.deleted_count
+    }), 200
 
 # Delete an Inventory Item
 @api_key_or_jwt_required()

@@ -110,13 +110,12 @@ def create_order():
 def create_vendor_item():
     db = connect_to_mongo()
     data = request.get_json()
-    if not data or not all(key in data for key in ['vendorId', 'itemId', 'price']):
-        return jsonify({'error': 'Missing required fields: vendorId, itemId, price'}), 400
+    if not data or not all(key in data for key in ['vendorId', 'itemId']):
+        return jsonify({'error': 'Missing required fields: vendorId, itemId'}), 400
 
     new_vendor_item = {
         'vendorId': ObjectId(data['vendorId']),
         'itemId': ObjectId(data['itemId']),
-        'price': float(data['price']),
         'created_at': datetime.utcnow()
     }
     result = db.VendorItems.insert_one(new_vendor_item)
@@ -175,14 +174,57 @@ def create_inventory_usage():
     required_fields = ["itemId", "userId", "quantity", "action"]
     if not data or not all(key in data for key in required_fields):
         return jsonify({"error": f"Missing required fields: {', '.join(required_fields)}"}), 400
+
     quantity = int(data["quantity"])
     action = data["action"]
+
     # Validate ObjectId fields
     try:
         item_id = ObjectId(data["itemId"])
         user_id = ObjectId(data["userId"])
     except Exception as e:
         return jsonify({"error": "Invalid itemId or userId format"}), 400
+
+    # Validate quantity
+    if quantity <= 0:
+        return jsonify({"error": "Quantity must be a positive integer"}), 400
+
+    # Define actions that decrease or increase inventory
+    decrease_actions = ["reportedDamaged", "reportedStolen", "reportedLost", "reportedCheckedOut", 'daily-usages']
+    increase_actions = ["returned"]
+
+    # Check if the action affects inventory
+    if action in decrease_actions or action in increase_actions:
+        # Fetch the current item from the inventory
+        item = db.InventoryItems.find_one({"_id": item_id})
+        if not item:
+            return jsonify({"error": "Item not found"}), 404
+
+        current_quantity = item.get("quantity", 0)
+        new_quantity = current_quantity
+
+        if action in decrease_actions:
+            # Decrease inventory quantity
+            new_quantity = current_quantity - quantity
+            if new_quantity < 0:
+                return jsonify({
+                    "error": f"Insufficient quantity for {item.get('name', 'item')}. Current: {current_quantity}, Requested: {quantity}"
+                }), 400
+        elif action in increase_actions:
+            # Increase inventory quantity
+            new_quantity = current_quantity + quantity
+
+        # Update the inventory item quantity
+        update_result = db.InventoryItems.update_one(
+            {"_id": item_id},
+            {"$set": {
+                "quantity": new_quantity,
+                "updated_at": datetime.utcnow()
+            }}
+        )
+
+        if update_result.modified_count == 0:
+            return jsonify({"error": "Failed to update inventory quantity"}), 500
 
     # Create the new inventory usage record
     new_usage = {
@@ -196,15 +238,10 @@ def create_inventory_usage():
     # Insert into the database
     result = db.InventoryUsage.insert_one(new_usage)
 
-    # Prepare the response
-    new_usage["_id"] = str(result.inserted_id)
-    new_usage["itemId"] = str(new_usage["itemId"])
-    new_usage["userId"] = str(new_usage["userId"])
-    new_usage["action"] = new_usage["action"]
-    new_usage["timestamp"] = new_usage["timestamp"].isoformat() + "Z"  # Match sample format
-    new_usage["quantity"] = new_usage["quantity"]
-
-    return jsonify(new_usage), 201
+    return jsonify({
+        "message": "Inventory usage recorded successfully",
+        "usageId": str(result.inserted_id)
+    }), 201
 
 
 @api_key_or_jwt_required()
@@ -220,7 +257,7 @@ def create_slack_management():
         return jsonify({'error': 'Slack management configuration already exists. Use update to modify.'}), 400
 
     data = request.get_json()
-    if not data or not all(key in data for key in ['bot_token', 'app_token', 'user_token']):
+    if not data or not all(key in data for key in ['bot_token', 'app_token', 'user_token', 'webhook']):
         return jsonify({'error': 'Missing required fields: bot_token, app_token, user_token'}), 400
 
     # Channel IDs are optional; default to empty list if not provided
@@ -230,6 +267,7 @@ def create_slack_management():
         'bot_token': data['bot_token'],
         'app_token': data['app_token'],
         'user_token': data['user_token'],
+        'webhook': data['webhook'],
         'channel_ids': channel_ids,
         'created_at': datetime.utcnow().isoformat(),
         'updated_at': datetime.utcnow().isoformat()

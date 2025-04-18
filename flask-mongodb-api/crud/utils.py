@@ -89,38 +89,38 @@ def watch_collection(collection_name, collection, socketio):
                         new_doc = convert_to_json_serializable(new_doc)
                         print(f"Emitting insert event for {collection_name}: {new_doc}")
                         socketio.emit(f"{collection_name}_insert", new_doc, namespace="/realtime")
-                   elif operation == "update":
+                    elif operation == "update":
                         updated_doc = None
                         if "fullDocument" in change:
                             updated_doc = change["fullDocument"]
                             updated_doc["_id"] = str(updated_doc["_id"])
                         else:
                             print(f"No fullDocument in update change for {collection_name}, fetching manually...")
-                            updated_doc = collection.find_one({"_id": ObjectId(document_id)})
-                            if updated_doc:
-                                updated_doc["_id"] = str(updated_doc["_id"])
-                            else:
-                                print(f"Document {document_id} not found after update, skipping emit.")
-                                continue
-                    
+                            updated_doc = collection.find_one({"_id": ObjectId(document_id)})                            
+                        if updated_doc:
+                            updated_doc["_id"] = str(updated_doc["_id"])
+                        else:
+                            print(f"Document {document_id} not found after update, skipping emit.")
+                            continue
+
                         updated_doc = convert_to_json_serializable(updated_doc)
                         print(f"Emitting update event for {collection_name}: {updated_doc}")
                         socketio.emit(f"{collection_name}_update", updated_doc, namespace="/realtime")
-                    
+
                         # Send to Slack
                         item_name = updated_doc.get("name") or updated_doc.get("item") or "an item"
                         send_slack_message(f"*{collection_name.replace('_', ' ').title()}* was updated: `{item_name}` (ID: {document_id})")
 
-                    elif operation == "delete":
+                    elif operation == "delete":                        
                         print(f"Emitting delete event for {collection_name}: {document_id}")
                         socketio.emit(f"{collection_name}_delete", {"_id": document_id}, namespace="/realtime")
                     else:
                         print(f"Unhandled operation type {operation} in {collection_name}: {change}")
-                    retry_delay = 5  # Reset delay on success
+                    retry_delay = 5  # Reset delay on success                    
         except Exception as e:
             print(f"Error watching {collection_name}: {e}. Retrying in 5 seconds...")
             time.sleep(retry_delay)
-            retry_delay = min(retry_delay * 2, max_delay)
+            retry_delay = min(retry_delay * 2, max_delay)            
 
 
 # Start watching all collections in separate threads

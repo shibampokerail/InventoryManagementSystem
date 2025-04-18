@@ -37,7 +37,6 @@ def update_vendor(id):
     if not update_data:
         return jsonify({'error': 'No valid fields to update'}), 400
 
-    update_data['updated_at'] = datetime.utcnow()
     result = db.Vendors.update_one({'_id': ObjectId(id)}, {'$set': update_data})
     if result.matched_count == 0:
         return jsonify({'error': 'Vendor not found'}), 404
@@ -125,13 +124,10 @@ def update_vendor_item(id):
     if not data:
         return jsonify({'error': 'No data provided'}), 400
 
-    update_data = {k: v for k, v in data.items() if k in ['price']}
+    update_data = {k: v for k, v in data.items() if k in ['vendorId', 'itemId']}
     if not update_data:
         return jsonify({'error': 'No valid fields to update'}), 400
-
-    if 'price' in update_data:
-        update_data['price'] = float(update_data['price'])
-    update_data['updated_at'] = datetime.utcnow()
+    
     result = db.VendorItems.update_one({'_id': ObjectId(id)}, {'$set': update_data})
     if result.matched_count == 0:
         return jsonify({'error': 'Vendor-item not found'}), 404
@@ -244,6 +240,8 @@ def update_slack_management():
             update_fields['user_token'] = data['user_token']
         if 'channel_ids' in data:
             update_fields['channel_ids'] = data['channel_ids']
+        if 'webhook' in data:
+            update_fields['webhook'] = data['webhook']
         update_fields['updated_at'] = datetime.utcnow().isoformat()
 
         # Update the document
