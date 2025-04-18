@@ -6,7 +6,7 @@
 export async function fetchInventoryItems() {
     const token = localStorage.getItem("token");
     try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/inventory-items`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/backendapi/inventory-items`, {
             method: "GET",
             headers: {
               "Authorization": `Bearer ${token}`,
@@ -29,7 +29,7 @@ export async function fetchInventoryItems() {
 export async function fetchInventoryUsageLogs() {
     const token = localStorage.getItem("token");
     try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/inventory-usage`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/backendapi/inventory-usage`, {
             method: "GET",
             headers: {
               "Authorization": `Bearer ${token}`,

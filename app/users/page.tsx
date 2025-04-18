@@ -76,7 +76,7 @@ export default function UsersPage() {
 
   const fetchData = async () => {
     try {
-      const usersData = await fetchWithAuth("/api/users");
+      const usersData = await fetchWithAuth("/backendapi/users");
       setUsers(usersData);
       const defaultRoles = ["admin", "manager", "employee"];
       const uniqueRoles = Array.from(new Set([...defaultRoles, ...usersData.map((user: User) => user.role)]));
@@ -127,7 +127,7 @@ export default function UsersPage() {
         slackId: newUser.slackId,
       };
 
-      await fetchWithAuth("/api/users", {
+      await fetchWithAuth("/backendapi/users", {
         method: "POST",
         body: JSON.stringify(userData),
       });
@@ -177,7 +177,7 @@ export default function UsersPage() {
         slackId: editingUser.slackId,
       };
 
-      await fetchWithAuth(`/api/users/${editingUser._id}`, {
+      await fetchWithAuth(`/backendapi/users/${editingUser._id}`, {
         method: "PUT",
         body: JSON.stringify(updatedUserData),
       });
@@ -203,7 +203,7 @@ export default function UsersPage() {
     if (!confirm("Are you sure you want to delete this user?")) return;
 
     try {
-      await fetchWithAuth(`/api/users/${userId}`, {
+      await fetchWithAuth(`/backendapi/users/${userId}`, {
         method: "DELETE",
       });
 

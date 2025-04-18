@@ -83,7 +83,7 @@ export default function ProfilePage() {
 
         let jwtToken = getToken();
         if (!jwtToken) {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/login`, {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/backendapi/login`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -128,14 +128,14 @@ export default function ProfilePage() {
         setLoading(true);
         setError(null);
 
-        const profile = await fetchWithAuth("/api/users/me", token);
+        const profile = await fetchWithAuth("/backendapi/users/me", token);
         setProfileData(profile);
         setOriginalProfileData(profile);
       } catch (err) {
         setError(err instanceof Error ? err.message : "An unknown error occurred");
         if (err instanceof Error && err.message.includes("Unauthorized")) {
           localStorage.removeItem("token");
-          router.push("/authapi/auth/login");
+          router.push("/api/auth/login");
         }
       } finally {
         setLoading(false);
@@ -174,7 +174,7 @@ export default function ProfilePage() {
     if (!token || !profileData) return;
 
     try {
-      await fetchWithAuth(`/api/users/${profileData._id}`, token, {
+      await fetchWithAuth(`/backendapi/users/${profileData._id}`, token, {
         method: "PUT",
         body: JSON.stringify(profileData),
       });

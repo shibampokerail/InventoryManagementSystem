@@ -107,7 +107,7 @@ export function DailyLogsForm() {
       setLoading(true);
       setError(null);
 
-      const itemsData: InventoryItem[] = await fetchWithAuth("/api/inventory-items", token);
+      const itemsData: InventoryItem[] = await fetchWithAuth("/backendapi/inventory-items", token);
       const supplyItems = itemsData
         .filter((item) => item.category.toLowerCase() === "supplies")
         .map((item) => ({
@@ -208,7 +208,7 @@ export function DailyLogsForm() {
         }
 
         // Log inventory usage
-        await fetchWithAuth("/api/inventory-usage", token, {
+        await fetchWithAuth("/backendapi/inventory-usage", token, {
           method: "POST",
           body: JSON.stringify({
             itemId: item.id,

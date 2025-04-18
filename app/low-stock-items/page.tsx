@@ -90,7 +90,7 @@ export default function LowStockItemsPage() {
   useEffect(() => {
     const fetchInventoryItems = async () => {
       try {
-        const data = await fetchWithAuth("/api/inventory-items");
+        const data = await fetchWithAuth("/backendapi/inventory-items");
         setInventoryItems(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to fetch inventory items. Please try again.");
@@ -101,7 +101,7 @@ export default function LowStockItemsPage() {
 
     const fetchVendors = async () => {
       try {
-        const data = await fetchWithAuth("/api/vendors");
+        const data = await fetchWithAuth("/backendapi/vendors");
         setVendors(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to fetch vendors. Please try again.");
@@ -172,7 +172,7 @@ export default function LowStockItemsPage() {
         status: formData.status,
       };
 
-      await fetchWithAuth("/api/orders", {
+      await fetchWithAuth("/backendapi/orders", {
         method: "POST",
         body: JSON.stringify(orderData),
       });

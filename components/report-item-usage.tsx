@@ -154,7 +154,7 @@ export function ReportItemUsage({ open, onOpenChange, inventoryItems, onUsageRep
 
       console.log("Submitting inventory usage:", usageData);
 
-      const response = await fetchWithAuth(`/api/inventory-usage`, token, {
+      const response = await fetchWithAuth(`/backendapi/inventory-usage`, token, {
         method: "POST",
         body: JSON.stringify(usageData),
       });

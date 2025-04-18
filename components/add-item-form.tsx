@@ -140,7 +140,7 @@ export function AddItemForm() {
         description: formData.description || undefined,
       };
 
-      const response = await fetchWithAuth("/api/inventory-items", token, {
+      const response = await fetchWithAuth("/backendapi/inventory-items", token, {
         method: "POST",
         body: JSON.stringify(newItem),
       });

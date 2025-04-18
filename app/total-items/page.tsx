@@ -76,7 +76,7 @@ export default function TotalItemsPage() {
 
         // Only fetch if inventoryItems is empty
         if (inventoryItems.length === 0) {
-          const itemsData = await fetchWithAuth("/api/inventory-items", token);
+          const itemsData = await fetchWithAuth("/backendapi/inventory-items", token);
           setInventoryItems(itemsData);
         }
       } catch (err) {

@@ -67,16 +67,16 @@ export default function InventoryDashboard() {
         setError(null);
 
         // Fetch inventory items
-        const itemsData = await fetchWithAuth("/api/inventory-items", token);
+        const itemsData = await fetchWithAuth("/backendapi/inventory-items", token);
         setInventoryItems(itemsData);
 
         // Fetch checkout history (inventory usage)
-        const usageData = await fetchWithAuth("/api/inventory-usage", token);
+        const usageData = await fetchWithAuth("/backendapi/inventory-usage", token);
         // Assuming WebSocketContext will handle real-time updates, we just set the initial data
         // If WebSocketContext had a setter for inventoryUsage, we would use it here.
 
         // Fetch stats
-        const statsData = await fetchWithAuth("/api/stats", token);
+        const statsData = await fetchWithAuth("/backendapi/stats", token);
         setStats(statsData);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to fetch data");

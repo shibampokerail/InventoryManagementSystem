@@ -121,7 +121,7 @@ export default function NotificationsPage() {
     try {
       setLoading(true)
       setError(null)
-      const data = await fetchWithAuth("/api/notifications", token)
+      const data = await fetchWithAuth("/notifications", token)
       const mappedNotifications = data.map(mapNotification)
       setNotifications(mappedNotifications)
     } catch (err) {
@@ -137,7 +137,7 @@ export default function NotificationsPage() {
     if (!token) return
 
     try {
-      const data = await fetchWithAuth("/api/orders", token)
+      const data = await fetchWithAuth("/orders", token)
       const mappedOrders = data.map(mapOrderToNotification)
       setOrders(mappedOrders)
     } catch (err) {
@@ -175,7 +175,7 @@ export default function NotificationsPage() {
     if (!token) return
 
     try {
-      await fetchWithAuth(`/api/orders/${orderId}`, token, {
+      await fetchWithAuth(`/orders/${orderId}`, token, {
         method: "PUT",
         body: JSON.stringify({ status: "received" }),
       })
@@ -195,7 +195,7 @@ export default function NotificationsPage() {
     if (!token) return
 
     try {
-      await fetchWithAuth(`/api/orders/${orderId}`, token, {
+      await fetchWithAuth(`/orders/${orderId}`, token, {
         method: "DELETE",
       })
       setOrders((prev) => prev.filter((order) => order.id !== orderId))
@@ -247,7 +247,7 @@ export default function NotificationsPage() {
     if (!token || selectedNotifications.length === 0) return
 
     try {
-      await fetchWithAuth("/api/notifications/mark-read", token, {
+      await fetchWithAuth("/notifications/mark-read", token, {
         method: "PUT",
         body: JSON.stringify({ ids: selectedNotifications }),
       })
@@ -268,7 +268,7 @@ export default function NotificationsPage() {
 
     try {
       const unreadIds = notifications.filter((n) => !n.read).map((n) => n.id)
-      await fetchWithAuth("/api/notifications/mark-read", token, {
+      await fetchWithAuth("/notifications/mark-read", token, {
         method: "PUT",
         body: JSON.stringify({ ids: unreadIds }),
       })
@@ -284,7 +284,7 @@ export default function NotificationsPage() {
     if (!token || selectedNotifications.length === 0) return
 
     try {
-      await fetchWithAuth("/api/notifications", token, {
+      await fetchWithAuth("/notifications", token, {
         method: "DELETE",
         body: JSON.stringify({ ids: selectedNotifications }),
       })

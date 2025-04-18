@@ -45,7 +45,7 @@ export const FlaskProvider = ({ children }: { children: ReactNode }) => {
         }
         let jwtToken = getToken();
         if (!jwtToken) {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/login`, {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/backendapi/login`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

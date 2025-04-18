@@ -39,7 +39,7 @@ export function UserNav() {
         console.warn("No token found in localStorage");
       } else {
         // Call Flask server to revoke the JWT token
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/logout`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/backendapi/logout`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,

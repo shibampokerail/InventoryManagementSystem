@@ -145,7 +145,7 @@ export function InventoryFullView({ inventoryItems: propInventoryItems }: Invent
         throw new Error("Authentication token not found. Please log in again.");
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/inventory-items/${itemId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/backendapi/inventory-items/${itemId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -307,7 +307,7 @@ export function InventoryFullView({ inventoryItems: propInventoryItems }: Invent
 
       console.log("Submitting updated item:", updatedItem);
 
-      const response = await fetchWithAuth(`/api/inventory-items/${itemToEdit?._id}`, token, {
+      const response = await fetchWithAuth(`/backendapi/inventory-items/${itemToEdit?._id}`, token, {
         method: "PUT",
         body: JSON.stringify(updatedItem),
       });

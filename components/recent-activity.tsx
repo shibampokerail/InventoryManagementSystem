@@ -43,7 +43,7 @@ export function RecentActivity() {
         setError(null);
 
         // Fetch all inventory usage records
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/inventory-usage`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/backendapi/inventory-usage`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
@@ -66,7 +66,7 @@ export function RecentActivity() {
           let itemName = `Item ${record.itemId}`;
           try {
             const itemResponse = await fetch(
-              `${process.env.NEXT_PUBLIC_API_URL}/api/inventory-items/${record.itemId}`,
+              `${process.env.NEXT_PUBLIC_API_URL}/backendapi/inventory-items/${record.itemId}`,
               {
                 headers: {
                   Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -85,7 +85,7 @@ export function RecentActivity() {
           let userName = `User ${record.userId}`;
           try {
             const userResponse = await fetch(
-              `${process.env.NEXT_PUBLIC_API_URL}/api/users/${record.userId}`,
+              `${process.env.NEXT_PUBLIC_API_URL}/backendapi/users/${record.userId}`,
               {
                 headers: {
                   Authorization: `Bearer ${localStorage.getItem("token")}`,
