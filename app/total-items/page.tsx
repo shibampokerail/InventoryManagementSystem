@@ -1,83 +1,187 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { useInventory } from "@/context/inventory-context"
-import { ArrowLeft, ArrowUpDown, Package, Search } from "lucide-react"
-import Link from "next/link"
-import { useState } from "react"
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useWebSocket } from "@/context/WebSocketContext";
+import { ArrowLeft, ArrowUpDown, Package, Search } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+
+// Interface for inventory item with derived status
+interface DisplayItem {
+  _id: string;
+  name: string;
+  category: string;
+  quantity: number;
+  location: string;
+  status: string;
+}
+
+// Utility function to get the JWT token from localStorage
+const getToken = () => {
+  return localStorage.getItem("token");
+};
+
+// Utility function to make authenticated API requests
+const fetchWithAuth = async (endpoint: string, token: string, options: RequestInit = {}) => {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error("Unauthorized: Invalid or revoked token");
+    }
+    throw new Error(`Failed to fetch data ${endpoint}: ${response.statusText}`);
+  }
+
+  return response.json();
+};
 
 export default function TotalItemsPage() {
-  const { inventoryItems } = useInventory()
-  const [searchTerm, setSearchTerm] = useState("")
-  const [categoryFilter, setCategoryFilter] = useState("all")
+  const router = useRouter();
+  const { inventoryItems, setInventoryItems, error: wsError } = useWebSocket();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "ascending" | "descending" }>({
     key: "name",
     direction: "ascending",
-  })
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch initial inventory items if not already loaded
+  useEffect(() => {
+    const fetchData = async () => {
+      const token = getToken();
+      if (!token) {
+        setError("No authentication token found. Please log in.");
+        setLoading(false);
+        router.push("/api/auth/login");
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Only fetch if inventoryItems is empty
+        if (inventoryItems.length === 0) {
+          const itemsData = await fetchWithAuth("/api/inventory-items", token);
+          setInventoryItems(itemsData);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to fetch inventory data");
+        if (err instanceof Error && err.message.includes("Unauthorized")) {
+          localStorage.removeItem("token");
+          router.push("/api/auth/login");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [inventoryItems, setInventoryItems, router]);
+
+  // Derive status for each item based on quantity
+  const itemsWithStatus: DisplayItem[] = inventoryItems.map((item) => ({
+    ...item,
+    status:
+      item.quantity === 0 ? "Out of Stock" : item.quantity <= 10 ? "Low Stock" : "In Stock",
+  }));
 
   // Get unique categories
-  const categories = ["all", ...Array.from(new Set(inventoryItems.map((item) => item.category)))]
+  const categories = ["all", ...Array.from(new Set(itemsWithStatus.map((item) => item.category)))];
 
   // Filter items by search term and category
-  const filteredItems = inventoryItems.filter((item) => {
+  const filteredItems = itemsWithStatus.filter((item) => {
     const matchesSearch =
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.location.toLowerCase().includes(searchTerm.toLowerCase())
+      item.location.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesCategory = categoryFilter === "all" || item.category === categoryFilter
+    const matchesCategory = categoryFilter === "all" || item.category === categoryFilter;
 
-    return matchesSearch && matchesCategory
-  })
+    return matchesSearch && matchesCategory;
+  });
 
   // Sort items
   const sortedItems = [...filteredItems].sort((a, b) => {
-    const aValue = a[sortConfig.key as keyof typeof a]
-    const bValue = b[sortConfig.key as keyof typeof b]
+    const aValue = a[sortConfig.key as keyof typeof a];
+    const bValue = b[sortConfig.key as keyof typeof b];
 
     // Handle undefined or null values
-    if (aValue === undefined || aValue === null) return sortConfig.direction === "ascending" ? -1 : 1
-    if (bValue === undefined || bValue === null) return sortConfig.direction === "ascending" ? 1 : -1
+    if (aValue === undefined || aValue === null)
+      return sortConfig.direction === "ascending" ? -1 : 1;
+    if (bValue === undefined || bValue === null)
+      return sortConfig.direction === "ascending" ? 1 : -1;
 
     // Compare string values
     if (typeof aValue === "string" && typeof bValue === "string") {
-      return sortConfig.direction === "ascending" ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue)
+      return sortConfig.direction === "ascending"
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
     }
 
     // Compare number values
     if (typeof aValue === "number" && typeof bValue === "number") {
-      return sortConfig.direction === "ascending" ? aValue - bValue : bValue - aValue
+      return sortConfig.direction === "ascending" ? aValue - bValue : bValue - aValue;
     }
 
     // Default comparison for other types
     return sortConfig.direction === "ascending"
       ? String(aValue).localeCompare(String(bValue))
-      : String(bValue).localeCompare(String(aValue))
-  })
+      : String(bValue).localeCompare(String(aValue));
+  });
 
   // Handle sort
   const requestSort = (key: string) => {
-    let direction: "ascending" | "descending" = "ascending"
+    let direction: "ascending" | "descending" = "ascending";
     if (sortConfig.key === key && sortConfig.direction === "ascending") {
-      direction = "descending"
+      direction = "descending";
     }
-    setSortConfig({ key, direction })
-  }
+    setSortConfig({ key, direction });
+  };
 
   // Get sort direction icon
   const getSortDirectionIcon = (name: string) => {
     if (sortConfig.key === name) {
       return (
         <ArrowUpDown
-          className={`ml-1 h-4 w-4 ${sortConfig.direction === "ascending" ? "text-purple-700" : "text-purple-500"}`}
+          className={`ml-1 h-4 w-4 ${
+            sortConfig.direction === "ascending" ? "text-purple-700" : "text-purple-500"
+          }`}
         />
-      )
+      );
     }
-    return <ArrowUpDown className="ml-1 h-4 w-4 text-purple-300" />
+    return <ArrowUpDown className="ml-1 h-4 w-4 text-purple-300" />;
+  };
+
+  // Handle loading and error states
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-purple-50/50 dark:bg-purple-950/50">
+        <p className="text-purple-900 dark:text-purple-50">Loading...</p>
+      </div>
+    );
+  }
+
+  if (error || wsError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-purple-50/50 dark:bg-purple-950/50">
+        <p className="text-red-500">{error || wsError}</p>
+      </div>
+    );
   }
 
   return (
@@ -124,7 +228,8 @@ export default function TotalItemsPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-xl text-purple-900 dark:text-purple-50 flex items-center">
               <Package className="mr-2 h-5 w-5" />
-              {filteredItems.length} Items ({filteredItems.reduce((sum, item) => sum + item.quantity, 0)} Total Units)
+              {filteredItems.length} Items (
+              {filteredItems.reduce((sum, item) => sum + item.quantity, 0)} Total Units)
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -143,7 +248,10 @@ export default function TotalItemsPage() {
                       {getSortDirectionIcon("category")}
                     </div>
                   </TableHead>
-                  <TableHead className="cursor-pointer text-right" onClick={() => requestSort("quantity")}>
+                  <TableHead
+                    className="cursor-pointer text-right"
+                    onClick={() => requestSort("quantity")}
+                  >
                     <div className="flex items-center justify-end">
                       Quantity
                       {getSortDirectionIcon("quantity")}
@@ -166,7 +274,10 @@ export default function TotalItemsPage() {
               <TableBody>
                 {sortedItems.length > 0 ? (
                   sortedItems.map((item) => (
-                    <TableRow key={item.id} className="hover:bg-purple-100/50 dark:hover:bg-purple-900/50">
+                    <TableRow
+                      key={item._id}
+                      className="hover:bg-purple-100/50 dark:hover:bg-purple-900/50"
+                    >
                       <TableCell className="font-medium">{item.name}</TableCell>
                       <TableCell>{item.category}</TableCell>
                       <TableCell className="text-right">{item.quantity}</TableCell>
@@ -177,10 +288,10 @@ export default function TotalItemsPage() {
                             item.status === "In Stock"
                               ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
                               : item.status === "Low Stock"
-                                ? "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"
-                                : item.status === "Out of Stock"
-                                  ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
-                                  : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+                              ? "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"
+                              : item.status === "Out of Stock"
+                              ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+                              : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
                           }`}
                         >
                           {item.status}
@@ -202,5 +313,5 @@ export default function TotalItemsPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

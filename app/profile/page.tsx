@@ -339,26 +339,28 @@ export default function ProfilePage() {
                         </div>
                       )}
                     </div>
-
-   
- 
-                  </div>
-                  <div className="space-y-2">
+                    <div className="space-y-2"> 
                     <Label htmlFor="slackId" className="text-purple-900 dark:text-purple-50">
-                      Slack ID
+                      Slack ID:
                     </Label>
                     {isEditing ? (
                       <Input
-                        id="slackId"
-                        name="slackId"
-                        value={profileData.slackId}
-                        onChange={handleInputChange}
-                        className="border-purple-200 dark:border-purple-800"
+                      id="slackId"
+                      name="slackId"
+                      value={profileData.slackId}
+                      onChange={handleInputChange}
+                      className="border-purple-200 dark:border-purple-800"
                       />
                     ) : (
                       <div className="text-purple-900 dark:text-purple-50 font-medium">{profileData.slackId}</div>
                     )}
-                </div>
+                    </div>
+                    
+ 
+                  </div>
+                  
+               
+                
               </div>
               </CardContent>
               {isEditing && (

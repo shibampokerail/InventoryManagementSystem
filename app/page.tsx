@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { InventoryTable } from "@/components/inventory-table";
 import { RecentActivity } from "@/components/recent-activity";
 import { DailyLogsForm } from "@/components/daily-logs-form";
@@ -9,7 +9,7 @@ import { UserNav } from "@/components/user-nav";
 import { MainNav } from "@/components/main-nav";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, AlertTriangle, CheckCircle2, Package } from "lucide-react";
+import { PlusCircle, AlertTriangle, Package, Truck, Users } from "lucide-react";
 import { InventoryFullView } from "@/components/inventory-full-view";
 import { ReportsView } from "@/components/reports-view";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -52,8 +52,10 @@ export default function InventoryDashboard() {
   // State for fetched data
   const [stats, setStats] = useState({
     total_items: 0,
+    total_categories: 0,
     low_stock: 0,
-    categoriescount: 0,
+    total_orders_placed: 0,
+    total_vendors: 0,
   });
 
   // State for loading and error handling
@@ -161,36 +163,12 @@ export default function InventoryDashboard() {
     fetchData();
   }, [token, router, setInventoryItems]);
 
-  // Step 3: Update stats whenever inventoryItems changes
-  useEffect(() => {
-    const totalItems = inventoryItems.length;
-    const lowStock = inventoryItems.filter((item) => item.quantity < item.minQuantity).length;
-
-    const categories = Array.from(new Set(inventoryItems.map((item) => item.category || "Uncategorized")));
-    const categoriescount = categories.length;
-    setStats({
-      total_items: totalItems,
-      low_stock: lowStock,
-      categoriescount: categoriescount,
-    });
-  }, [inventoryItems]);
-
   // Calculate dashboard stats
   const totalItems = stats.total_items || 0;
   const lowStockItems = stats.low_stock || 0;
-  const categoriescount = stats.categoriescount || 0;
-
-  // Count upcoming returns (due within 48 hours)
-  const currentDate = new Date();
-  const futureDate = new Date(currentDate);
-  futureDate.setHours(currentDate.getHours() + 48);
-
-  const upcomingReturns = inventoryUsage.filter(
-    (checkout: { return_date?: string; created_at: string }) => {
-      const returnDate = new Date(checkout.return_date || checkout.created_at);
-      return returnDate <= futureDate && returnDate >= currentDate;
-    }
-  ).length;
+  const totalCategories = stats.total_categories || 0;
+  const totalOrdersPlaced = stats.total_orders_placed || 0;
+  const totalVendors = stats.total_vendors || 0;
 
   // Handle loading and error states
   if (loading || authLoading) {
@@ -309,7 +287,7 @@ export default function InventoryDashboard() {
                 <CardContent>
                   <div className="text-2xl font-bold text-purple-900 dark:text-purple-50">{totalItems}</div>
                   <p className="text-xs text-purple-700 dark:text-purple-300">
-                    Across {categoriescount} categories
+                    Across {totalCategories} categories
                   </p>
                 </CardContent>
               </Card>
@@ -330,45 +308,32 @@ export default function InventoryDashboard() {
               </Card>
               <Card
                 className="border-purple-200 dark:border-purple-800 cursor-pointer hover:border-purple-400 dark:hover:border-purple-600 transition-colors"
-                onClick={() => router.push("/checked-out-items")}
+                onClick={() => router.push("/notifications")}
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-purple-900 dark:text-purple-100">
-                    Items Checked Out
+                    Orders Placed
                   </CardTitle>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    className="h-4 w-4 text-purple-700 dark:text-purple-300"
-                  >
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-                  </svg>
+                  <Truck className="h-4 w-4 text-purple-700 dark:text-purple-300" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-purple-900 dark:text-purple-50">{inventoryUsage.length}</div>
-                  <p className="text-xs text-purple-700 dark:text-purple-300">For current events</p>
+                  <div className="text-2xl font-bold text-purple-900 dark:text-purple-50">{totalOrdersPlaced}</div>
+                  <p className="text-xs text-purple-700 dark:text-purple-300"> Orders yet to arrive</p>
                 </CardContent>
               </Card>
               <Card
                 className="border-purple-200 dark:border-purple-800 cursor-pointer hover:border-purple-400 dark:hover:border-purple-600 transition-colors"
-                onClick={() => router.push("/upcoming-returns")}
+                onClick={() => router.push("/vendors")}
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-purple-900 dark:text-purple-100">
-                    Upcoming Returns
+                    Total Vendors
                   </CardTitle>
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  <Users className="h-4 w-4 text-purple-700 dark:text-purple-300" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-purple-900 dark:text-purple-50">{upcomingReturns}</div>
-                  <p className="text-xs text-purple-700 dark:text-purple-300">Due within 48 hours</p>
+                  <div className="text-2xl font-bold text-purple-900 dark:text-purple-50">{totalVendors}</div>
+                  <p className="text-xs text-purple-700 dark:text-purple-300">Active vendors</p>
                 </CardContent>
               </Card>
             </div>

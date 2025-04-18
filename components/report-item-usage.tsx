@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { jwtDecode } from "jwt-decode";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Interface for inventory items
 interface InventoryItem {
@@ -28,6 +29,7 @@ interface ReportItemUsageProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   inventoryItems: InventoryItem[];
+  onUsageReported?: () => void; // Callback to notify parent component
 }
 
 const actions = ["damaged", "stolen", "lost", "other"];
@@ -70,9 +72,10 @@ const fetchWithAuth = async (endpoint: string, token: string, options: RequestIn
   return response.json();
 };
 
-export function ReportItemUsage({ open, onOpenChange, inventoryItems }: ReportItemUsageProps) {
+export function ReportItemUsage({ open, onOpenChange, inventoryItems, onUsageReported }: ReportItemUsageProps) {
   const { toast } = useToast();
   const [selectedItemId, setSelectedItemId] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [action, setAction] = useState<string>("");
   const [quantity, setQuantity] = useState<string>("");
   const [customReason, setCustomReason] = useState<string>("");
@@ -89,8 +92,20 @@ export function ReportItemUsage({ open, onOpenChange, inventoryItems }: ReportIt
     }
   }, []);
 
+  // Filter items to only those whose names start with the search query
+  const filteredItems = inventoryItems.filter((item) =>
+    searchQuery ? item.name.toLowerCase().startsWith(searchQuery.toLowerCase()) : true
+  );
+
+  // Handle item selection
+  const handleItemSelect = (item: InventoryItem) => {
+    setSelectedItemId(item._id);
+    setSearchQuery(""); // Clear search after selection
+  };
+
   const resetForm = () => {
     setSelectedItemId("");
+    setSearchQuery("");
     setAction("");
     setQuantity("");
     setCustomReason("");
@@ -129,6 +144,7 @@ export function ReportItemUsage({ open, onOpenChange, inventoryItems }: ReportIt
 
     try {
       const userId = getUserIdFromToken(token);
+
       const usageData = {
         itemId: selectedItemId,
         userId,
@@ -152,6 +168,10 @@ export function ReportItemUsage({ open, onOpenChange, inventoryItems }: ReportIt
         variant: "success",
       });
 
+      if (onUsageReported) {
+        onUsageReported();
+      }
+
       resetForm();
       onOpenChange(false);
     } catch (err) {
@@ -169,6 +189,11 @@ export function ReportItemUsage({ open, onOpenChange, inventoryItems }: ReportIt
       setIsSubmitting(false);
     }
   };
+
+  // Get the selected item's name for display
+  const selectedItem = selectedItemId
+    ? inventoryItems.find((item) => item._id === selectedItemId)
+    : null;
 
   return (
     <Dialog open={open} onOpenChange={(open) => {
@@ -188,21 +213,49 @@ export function ReportItemUsage({ open, onOpenChange, inventoryItems }: ReportIt
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="item" className="text-purple-900 dark:text-purple-50">
+            <Label htmlFor="itemSearch" className="text-purple-900 dark:text-purple-50">
               Item <span className="text-red-500">*</span>
             </Label>
-            <Select value={selectedItemId} onValueChange={setSelectedItemId} required>
-              <SelectTrigger id="item" className="border-purple-200 dark:border-purple-800">
-                <SelectValue placeholder="Select item" />
-              </SelectTrigger>
-              <SelectContent>
-                {inventoryItems.map((item) => (
-                  <SelectItem key={item._id} value={item._id}>
-                    {item.name} ({item.quantity} in stock)
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Input
+              id="itemSearch"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search items..."
+              className="border-purple-200 dark:border-purple-800"
+              autoComplete="off"
+            />
+            <ScrollArea className="h-[150px] border border-purple-200 dark:border-purple-800 rounded-md">
+              {selectedItem && (
+                <div
+                  key={selectedItem._id}
+                  className="px-4 py-2 bg-purple-200 dark:bg-purple-700 text-purple-900 dark:text-purple-50 font-bold"
+                >
+                  {selectedItem.name} ({selectedItem.quantity} in stock)
+                </div>
+              )}
+              {filteredItems.length > 0 ? (
+                filteredItems
+                  .filter((item) => item._id !== selectedItemId) // Exclude the selected item from the rest of the list
+                  .map((item) => (
+                    <div
+                      key={item._id}
+                      className={`px-4 py-2 hover:bg-purple-100 dark:hover:bg-purple-800 cursor-pointer text-purple-900 dark:text-purple-50`}
+                      onClick={() => handleItemSelect(item)}
+                    >
+                      {item.name} ({item.quantity} in stock)
+                    </div>
+                  ))
+              ) : (
+                <div className="px-4 py-2 text-purple-700 dark:text-purple-300">
+                  No items found
+                </div>
+              )}
+            </ScrollArea>
+            {selectedItem && (
+              <div className="text-sm text-purple-700 dark:text-purple-300">
+                Selected: {selectedItem.name} ({selectedItem.quantity} in stock)
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">

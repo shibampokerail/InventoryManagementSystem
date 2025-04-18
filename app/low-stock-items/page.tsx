@@ -115,7 +115,7 @@ export default function LowStockItemsPage() {
   const categories = ["all", ...Array.from(new Set(inventoryItems.map((item) => item.category)))];
 
   // Filter for low stock items (less than 20)
-  const lowStockItems = inventoryItems.filter((item) => item.quantity < 20);
+  const lowStockItems = inventoryItems.filter((item) => item.quantity < item.minQuantity);
 
   // Apply search and category filters
   const filteredItems = lowStockItems.filter((item) => {

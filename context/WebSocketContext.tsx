@@ -17,6 +17,7 @@ interface Vendor {
   _id: string;
   name: string;
   contact: string;
+  phone: string;
 
 }
 interface InventoryItem {
@@ -133,7 +134,7 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    console.log("Attempting to connect to WebSocket with token:", token);
+    console.log("Attempting to connect to WebSocket with token:");
 
     const socketInstance = io(`${process.env.NEXT_PUBLIC_API_URL}/realtime`, {
       path: "/socket.io",
@@ -196,7 +197,9 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
     socketInstance.on("vendors_update", (updatedVendor: Vendor) => {
       console.log("Updated vendor:", updatedVendor);
       setVendors((prev) =>
-        prev.map((vendor) => (vendor._id === updatedVendor._id ? updatedVendor : vendor))
+        prev.map((vendor) =>
+          vendor._id === updatedVendor._id ? { ...vendor, ...updatedVendor } : vendor
+        )
       );
     });
 
@@ -204,6 +207,8 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
       console.log("Deleted vendor:", data._id);
       setVendors((prev) => prev.filter((vendor) => vendor._id !== data._id));
     });
+
+    
 
     // Inventory items events
     socketInstance.on("inventory_items_insert", (newItem: InventoryItem) => {
