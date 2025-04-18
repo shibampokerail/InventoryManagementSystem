@@ -135,7 +135,7 @@ export default function ProfilePage() {
         setError(err instanceof Error ? err.message : "An unknown error occurred");
         if (err instanceof Error && err.message.includes("Unauthorized")) {
           localStorage.removeItem("token");
-          router.push("/api/auth/login");
+          router.push("/authapi/auth/login");
         }
       } finally {
         setLoading(false);

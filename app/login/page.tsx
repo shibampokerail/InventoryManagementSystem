@@ -21,7 +21,7 @@ export default function IntroPage() {
           Manage resources, track assets, and stay organized with a secure login powered by Auth0.
         </p>
 
-        <Link href="/authapi/auth/login">
+        <Link href="/api/auth/login">
           <Button className="px-8 py-3 text-lg bg-purple-700 hover:bg-purple-800 text-white rounded-full">
             Continue to Login
           </Button>
