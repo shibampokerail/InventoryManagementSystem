@@ -1,0 +1,54 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+env/
+.venv/
+.env/
+instance/
+
+# Flask distribution
+*.egg
+*.whl
+dist/
+build/
+develop-eggs/
+parts/
+eggs/
+.installed.cfg
+*.manifest
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.log
+*.prof
+
+# Translations
+*.mo
+*.pot
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDE-specific files
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# Secrets
+.env
+secrets.txt
+*.key
+*.pem
