@@ -83,17 +83,41 @@ export function ReportsView() {
     async function fetchData() {
       try {
         setLoading(true)
-        const [items, logs] = await Promise.all([fetchInventoryItems(), fetchInventoryUsageLogs()])
-        console.log(items,logs)
+        console.log("Fetching data from API...")
+
+        // Fetch inventory items
+        const items = await fetchInventoryItems()
+        console.log("Fetched inventory items:", {
+          count: items.length,
+          sample: items.slice(0, 2),
+        })
+
+        // Fetch usage logs
+        const logs = await fetchInventoryUsageLogs()
+        console.log("Fetched usage logs:", {
+          count: logs.length,
+          sample: logs.slice(0, 2),
+          actions: logs.length > 0 ? [...new Set(logs.map((log: any) => log.action))] : [],
+        })
+
         setInventoryItems(items)
         setUsageLogs(logs)
 
         // Process data
+        console.log("Processing data...")
         const monthlyData = processMonthlyUsage(logs, items)
         const weeklyData = processWeeklyUsage(logs, items)
         const popular = getMostPopularItems(logs, items)
         const unavailable = getUnavailableItems(logs, items)
         const lowStock = getLowStockItems(items)
+
+        console.log("Data processing results:", {
+          monthlyDataCount: monthlyData.length,
+          weeklyDataCount: weeklyData.length,
+          popularItemsCount: popular.length,
+          unavailableItemsCount: unavailable.length,
+          lowStockCount: lowStock.length,
+        })
 
         setUsageData(timeframe === "monthly" ? monthlyData : weeklyData)
         setPopularItems(popular)
@@ -456,17 +480,7 @@ export function ReportsView() {
                 </CardContent>
               </Card>
 
-              <Card className="border-purple-200 dark:border-purple-800">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-purple-900 dark:text-purple-100">
-                    Estimated Cost
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-purple-900 dark:text-purple-50">$425</div>
-                  <p className="text-xs text-purple-700 dark:text-purple-300">To restock all low items</p>
-                </CardContent>
-              </Card>
+             
             </div>
           </CardContent>
         </Card>

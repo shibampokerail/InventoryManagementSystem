@@ -15,13 +15,8 @@ import { ReportsView } from "@/components/reports-view";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AddItemForm } from "@/components/add-item-form";
 import { useRouter } from "next/navigation";
-import { useUser } from "@auth0/nextjs-auth0/client";
 import { useWebSocket } from "@/context/WebSocketContext";
-
-// Utility function to get the JWT token from localStorage
-const getToken = () => {
-  return localStorage.getItem("token");
-};
+import { useFlask } from "@/context/FlaskProvider";
 
 // Utility function to make authenticated API requests
 const fetchWithAuth = async (endpoint: string, token: string, options: RequestInit = {}) => {
@@ -46,7 +41,7 @@ const fetchWithAuth = async (endpoint: string, token: string, options: RequestIn
 
 export default function InventoryDashboard() {
   const router = useRouter();
-  const { user, isLoading: authLoading, error: authError } = useUser();
+  const { token, isLoading: flaskLoading, error: flaskError } = useFlask();
   const { inventoryItems, setInventoryItems, inventoryUsage, error: wsError } = useWebSocket();
 
   // State for fetched data
@@ -61,72 +56,8 @@ export default function InventoryDashboard() {
   // State for loading and error handling
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [token, setToken] = useState<string | null>(null);
 
-  // Step 1: Authenticate with Auth0 and get the JWT token from Flask
-  useEffect(() => {
-    const authenticate = async () => {
-      try {
-        // Check if Auth0 is still loading or if there's an error
-        if (authLoading) return;
-        if (authError) {
-          throw new Error("Auth0 authentication failed");
-        }
-
-        // Redirect to login if user is not authenticated
-        if (!user) {
-          router.push("/api/auth/login");
-          return;
-        }
-
-        // Get the user's email from Auth0
-        const email = user.email;
-        if (!email) {
-          throw new Error("User email not found in Auth0 profile");
-        }
-
-        // Check if a token already exists in localStorage
-        let jwtToken = getToken();
-        if (!jwtToken) {
-          // Send the email to the Flask server to get a JWT token
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/login`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ email }),
-          });
-
-          if (!response.ok) {
-            throw new Error("Failed to authenticate with Flask server");
-          }
-
-          const data = await response.json();
-          jwtToken = data.access_token;
-
-          if (!jwtToken) {
-            throw new Error("No JWT token received from Flask server");
-          }
-
-          // Store the JWT token in localStorage
-          localStorage.setItem("token", jwtToken);
-        }
-
-        setToken(jwtToken);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An unknown error occurred");
-        if (err instanceof Error && (err.message.includes("Auth0") || err.message.includes("email"))) {
-          router.push("/api/auth/login");
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    authenticate();
-  }, [user, authLoading, authError, router]);
-
-  // Step 2: Fetch data using the JWT token
+  // Fetch data using the JWT token
   useEffect(() => {
     const fetchData = async () => {
       if (!token) return; // Wait until the token is available
@@ -142,9 +73,7 @@ export default function InventoryDashboard() {
         // Fetch checkout history (inventory usage)
         const usageData = await fetchWithAuth("/api/inventory-usage", token);
         // Assuming WebSocketContext will handle real-time updates, we just set the initial data
-        // If WebSocket hasn't connected yet, this ensures we have data
-        // Note: If WebSocketContext had a setter for inventoryUsage, we would use it here.
-        // Since it doesn't directly expose a setter in the current context, we'll rely on the WebSocket to update it.
+        // If WebSocketContext had a setter for inventoryUsage, we would use it here.
 
         // Fetch stats
         const statsData = await fetchWithAuth("/api/stats", token);
@@ -171,7 +100,7 @@ export default function InventoryDashboard() {
   const totalVendors = stats.total_vendors || 0;
 
   // Handle loading and error states
-  if (loading || authLoading) {
+  if (flaskLoading || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-purple-50/50 dark:bg-purple-950/50">
         <p className="text-purple-900 dark:text-purple-50">Loading...</p>
@@ -179,10 +108,10 @@ export default function InventoryDashboard() {
     );
   }
 
-  if (error || wsError) {
+  if (flaskError || wsError || error) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-purple-50/50 dark:bg-purple-950/50">
-        <p className="text-red-500">{error || wsError}</p>
+        <p className="text-red-500">{flaskError || wsError || error}</p>
       </div>
     );
   }
@@ -204,8 +133,7 @@ export default function InventoryDashboard() {
       <div className="flex-1 space-y-4 p-8 pt-6 bg-purple-50/50 dark:bg-purple-950/50">
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight text-purple-900 dark:text-purple-50">
-            Inventory Dashboard{" "}
-          
+            Inventory Dashboard
           </h2>
           <div className="flex items-center space-x-2">
             <Dialog>
@@ -249,7 +177,6 @@ export default function InventoryDashboard() {
             >
               Inventory
             </TabsTrigger>
-
             <TabsTrigger
               value="reports"
               className="data-[state=active]:bg-purple-700 data-[state=active]:text-white dark:text-purple-100 dark:data-[state=inactive]:text-purple-300"
@@ -347,7 +274,6 @@ export default function InventoryDashboard() {
               </Card>
             </div>
           </TabsContent>
-
           <TabsContent value="daily-logs" className="space-y-4">
             <Card className="border-purple-200 dark:border-purple-800">
               <CardHeader>
@@ -361,7 +287,6 @@ export default function InventoryDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
-
           <TabsContent value="inventory" className="space-y-4">
             <Card className="border-purple-200 dark:border-purple-800">
               <CardHeader>
@@ -375,7 +300,6 @@ export default function InventoryDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
-
           <TabsContent value="reports" className="space-y-4">
             <Card className="border-purple-200 dark:border-purple-800">
               <CardHeader>
@@ -385,7 +309,7 @@ export default function InventoryDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ReportsView/>
+                <ReportsView />
               </CardContent>
             </Card>
           </TabsContent>
