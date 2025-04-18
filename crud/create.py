@@ -191,7 +191,7 @@ def create_inventory_usage():
 
     # Define actions that decrease or increase inventory
     decrease_actions = ["reportedDamaged", "reportedStolen", "reportedLost", "reportedCheckedOut", 'daily-usages']
-    increase_actions = ["returned"]
+    increase_actions = ["reportedReturned"]
 
     # Check if the action affects inventory
     if action in decrease_actions or action in increase_actions:
