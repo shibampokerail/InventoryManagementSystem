@@ -28,10 +28,10 @@ from crud.delete import (
 )
 from crud.utils import login, logout, get_stats, start_watching_collections
 
-
+allowed_cors = os.getenv('ALLOWED_CORS')
 
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": ["http://192.168.0.40:3006", "http://localhost:3006"]}})
+CORS(app, resources={r"/api/*": {"origins": allowed_cors}})
 # Load environment variables
 load_dotenv()
 SECRET_KEY = os.getenv('SECRET_KEY') 
@@ -39,7 +39,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 app.config['JWT_SECRET_KEY'] = SECRET_KEY
 
 # Initialize SocketIO with eventlet
-socketio = SocketIO(app, async_mode="eventlet", cors_allowed_origins=["http://192.168.0.40:3006", "http://localhost:3006"])
+socketio = SocketIO(app, async_mode="eventlet", cors_allowed_origins=allowed_cors)
 jwt = JWTManager(app)
 
 # Start watching collections for real-time updates
