@@ -70,7 +70,7 @@ export default function SlackBotConfigPage() {
   useEffect(() => {
     const fetchSlackConfig = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/slack-management`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/backendapi/slack-management`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
             "Content-Type": "application/json",
@@ -139,7 +139,7 @@ export default function SlackBotConfigPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/slack-management`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/backendapi/slack-management`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,

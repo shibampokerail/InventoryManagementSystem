@@ -89,9 +89,9 @@ export default function VendorsPage() {
   const fetchData = async () => {
     try {
       const [vendorsData, inventoryData, vendorItemsData] = await Promise.all([
-        fetchWithAuth("/vendors"),
-        fetchWithAuth("/inventory-items"),
-        fetchWithAuth("/vendor-items"),
+        fetchWithAuth("/backendapi/vendors"),
+        fetchWithAuth("/backendapi/inventory-items"),
+        fetchWithAuth("/backendapi/vendor-items"),
       ]);
 
       if (!Array.isArray(vendorsData)) {
@@ -134,7 +134,7 @@ export default function VendorsPage() {
     try {
       setIsVendorItemsLoading(true);
       console.log(`Fetching items for vendor ${vendorId}`);
-      const items = await fetchWithAuth(`/vendors/${vendorId}/items`);
+      const items = await fetchWithAuth(`/backendapi/vendors/${vendorId}/items`);
       if (!Array.isArray(items)) {
         throw new Error("Items API response is not an array");
       }
@@ -207,7 +207,7 @@ export default function VendorsPage() {
         phone: newVendor.phone,
       };
 
-      await fetchWithAuth("/vendors", {
+      await fetchWithAuth("/backendapi/vendors", {
         method: "POST",
         body: JSON.stringify(vendorData),
       });
@@ -258,7 +258,7 @@ export default function VendorsPage() {
         phone: editingVendor.phone,
       };
 
-      await fetchWithAuth(`/vendors/${editingVendor._id}`, {
+      await fetchWithAuth(`/backendapi/vendors/${editingVendor._id}`, {
         method: "PUT",
         body: JSON.stringify(updatedVendorData),
       });
@@ -287,7 +287,7 @@ export default function VendorsPage() {
     if (!confirm("Are you sure you want to delete this vendor?")) return;
 
     try {
-      await fetchWithAuth(`/vendors/${vendorId}`, {
+      await fetchWithAuth(`/backendapi/vendors/${vendorId}`, {
         method: "DELETE",
       });
 
@@ -310,7 +310,7 @@ export default function VendorsPage() {
     setSelectedVendor(vendor);
     try {
       // Fetch latest vendorItems to ensure accuracy
-      const vendorItemsData = await fetchWithAuth(`/vendor-items?vendorId=${vendor._id}`);
+      const vendorItemsData = await fetchWithAuth(`/backendapi/vendor-items?vendorId=${vendor._id}`);
       if (!Array.isArray(vendorItemsData)) {
         throw new Error("Vendor Items API response is not an array");
       }
@@ -435,7 +435,7 @@ export default function VendorsPage() {
       console.log("itemsToUnassign:", itemsToUnassign);
 
       const assignPromises = itemsToAssign.map((itemId) =>
-        fetchWithAuth("/vendor-items", {
+        fetchWithAuth("/backendapi/vendor-items", {
           method: "POST",
           body: JSON.stringify({
             vendorId: selectedVendor._id,
@@ -446,7 +446,7 @@ export default function VendorsPage() {
 
       const uniqueItemsToUnassign = Array.from(new Set(itemsToUnassign));
       const unassignPromises = uniqueItemsToUnassign.map((vendorItemId) =>
-        fetchWithAuth(`/vendor-items/${vendorItemId}`, {
+        fetchWithAuth(`/backendapi/vendor-items/${vendorItemId}`, {
           method: "DELETE",
         })
       );
