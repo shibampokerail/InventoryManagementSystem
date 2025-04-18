@@ -27,19 +27,20 @@ from crud.delete import (
     delete_vendor_item, delete_notifications, delete_log, delete_inventory_usage
 )
 from crud.utils import login, logout, get_stats, start_watching_collections
+load_dotenv()
 
 allowed_cors = os.getenv('ALLOWED_CORS')
-
+print(f"Allowed CORS: {allowed_cors}")
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": allowed_cors}})
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 # Load environment variables
-load_dotenv()
+
 SECRET_KEY = os.getenv('SECRET_KEY') 
 # JWT Configuration
 app.config['JWT_SECRET_KEY'] = SECRET_KEY
 
 # Initialize SocketIO with eventlet
-socketio = SocketIO(app, async_mode="eventlet", cors_allowed_origins=allowed_cors)
+socketio = SocketIO(app, async_mode="eventlet", cors_allowed_origins="*")
 jwt = JWTManager(app)
 
 # Start watching collections for real-time updates
