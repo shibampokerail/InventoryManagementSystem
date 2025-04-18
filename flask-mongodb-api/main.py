@@ -1,3 +1,4 @@
+import logging
 import eventlet
 eventlet.monkey_patch()
 from flask import Flask, request
@@ -133,6 +134,8 @@ app.route('/api/inventory-usage/item/<item_id>', methods=['GET'])(get_usage_by_i
 app.route('/api/slack-management', methods=['POST'])(create_slack_management)
 app.route('/api/slack-management', methods=['GET'])(get_slack_management)
 app.route('/api/slack-management', methods=['PUT'])(update_slack_management)
+
+logging.basicConfig(level=logging.INFO, filename='app.log', format='%(asctime)s [%(levelname)s] %(message)s')
 
 if __name__ == '__main__':
     socketio.run(app, debug=False, host='0.0.0.0', port=5001) 

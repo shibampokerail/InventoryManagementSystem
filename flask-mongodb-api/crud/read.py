@@ -272,8 +272,6 @@ def get_usage_by_item(item_id):
         usage['userId'] = str(usage['userId'])
     return jsonify(usages), 200
 
-logging.basicConfig(level=logging.INFO, filename='app.log', format='%(asctime)s [%(levelname)s] %(message)s')
-
 @api_key_or_jwt_required()
 def get_slack_management():
     try:
