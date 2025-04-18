@@ -244,7 +244,6 @@ export function getMostPopularItems(usageLogs: UsageLog[], inventoryItems: Inven
         name: item ? item.name : "Unknown Item",
         category: item ? item.category : "Unknown",
         checkouts: count,
-        averageDuration: "2.1 days", // Placeholder - would need more data to calculate
         trend: Math.random() > 0.3 ? `↑ ${Math.floor(Math.random() * 15)}%` : `↓ ${Math.floor(Math.random() * 10)}%`, // Placeholder
       }
     })
@@ -316,4 +315,59 @@ export function getLowStockItems(inventoryItems: InventoryItem[]): InventoryItem
     const bRatio = b.quantity / b.minQuantity
     return aRatio - bRatio
   })
+}
+
+export function getItemsByPeriod(
+  usageLogs: UsageLog[],
+  inventoryItems: InventoryItem[],
+  period: string,
+  timeframe: string,
+): ItemPopularity[] {
+  console.log(`Getting items for period: ${period}, timeframe: ${timeframe}`)
+
+  // Create maps for quick lookups
+  const itemMap = new Map<string, InventoryItem>()
+  inventoryItems.forEach((item) => {
+    itemMap.set(item._id, item)
+  })
+
+  // Filter logs to only include checkout and used actions
+  const relevantLogs = usageLogs.filter((log) => log.action === "reportedCheckedOut" || log.action === "daily-usages")
+
+  // Filter logs by period
+  const filteredLogs = relevantLogs.filter((log) => {
+    const date = new Date(log.timestamp)
+
+    if (timeframe === "monthly") {
+      // For monthly view, check if month matches
+      return getMonthName(date) === period
+    } else {
+      // For weekly view, check if week range matches
+      return getWeekRange(date) === period
+    }
+  })
+
+  console.log(`Found ${filteredLogs.length} logs for period ${period}`)
+
+  // Count checkouts by item
+  const itemCounts = new Map<string, number>()
+  filteredLogs.forEach((log) => {
+    const itemId = log.itemId
+    const currentCount = itemCounts.get(itemId) || 0
+    itemCounts.set(itemId, currentCount + log.quantity)
+  })
+
+  // Convert to array and sort by popularity
+  return Array.from(itemCounts.entries())
+    .map(([itemId, count]) => {
+      const item = itemMap.get(itemId)
+      return {
+        name: item ? item.name : "Unknown Item",
+        category: item ? item.category : "Unknown",
+        checkouts: count,
+        averageDuration: "2.1 days", // Placeholder - would need more data to calculate
+        trend: Math.random() > 0.3 ? `↑ ${Math.floor(Math.random() * 15)}%` : `↓ ${Math.floor(Math.random() * 10)}%`, // Placeholder
+      }
+    })
+    .sort((a, b) => b.checkouts - a.checkouts)
 }

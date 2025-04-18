@@ -36,7 +36,7 @@ export const FlaskProvider = ({ children }: { children: ReactNode }) => {
           throw new Error("Auth0 authentication failed");
         }
         if (!user) {
-          router.push("/api/auth/login");
+          console.log("User not authenticated");
           return;
         }
         const email = user.email;

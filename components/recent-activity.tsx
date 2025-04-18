@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowDownIcon, ArrowUpIcon, RefreshCw } from "lucide-react";
+import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon, RefreshCw } from "lucide-react";
+import { Span } from "next/dist/trace";
 
 interface UsageRecord {
   _id: string;
@@ -107,18 +107,17 @@ export function RecentActivity() {
             reportedDamaged: "reported damaged",
             reportedStolen: "reported stolen",
             reportedLost: "reported lost",
-            checkedOut: "checked out",
-            returned: "returned",
-            checkout: "checked out", // Handle potential typo in sample dataksbvids;J c;KJ C;kj 
+            reportedCheckedOut: "checked out",
+            reportedReturned: "returned",
           };
           const baseAction = actionMap[record.action] || record.action;
 
           // Reorder for reported actions: "reported <quantity> <action> item"
           let action = baseAction;
           if (["reported damaged", "reported stolen", "reported lost"].includes(baseAction)) {
-            action = `reported ${record.quantity} ${baseAction.split(" ")[1]} item`;
+            action = `reported ${record.quantity} ${baseAction.split(" ")[1]} ${itemName}`;
           } else {
-            action = `${baseAction} ${record.quantity} item`;
+            action = `${baseAction} ${record.quantity} ${itemName}`;
           }
 
           // Format timestamp
@@ -141,13 +140,11 @@ export function RecentActivity() {
 
         const resolvedActivities = await Promise.all(activitiesPromises);
 
-        // Sort by timestamp (newest first) and take top 5
-        const sortedActivities = resolvedActivities
-          .sort(
-            (a, b) =>
-              new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-          )
-          .slice(0, 5);
+        // Sort by timestamp (newest first)
+        const sortedActivities = resolvedActivities.sort(
+          (a, b) =>
+            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
 
         setActivities(sortedActivities);
       } catch (err) {
@@ -188,33 +185,33 @@ export function RecentActivity() {
   }
 
   return (
-    <div className="space-y-8">
-      {activities.map((activity) => (
-        <div className="flex items-center" key={activity.id}>
-
-          <div className="ml-4 space-y-1">
-            <p className="text-sm font-medium text-purple-900 dark:text-purple-50">
-              {activity.user.name}
-            </p>
-            <p className="text-sm text-purple-700 dark:text-purple-300">
-              {activity.action}
-            </p>
-          </div>
-          <div className="ml-auto text-xs text-purple-600 dark:text-purple-400 flex items-center">
-            {activity.action.includes("checked out") && (
-              <ArrowUpIcon className="h-3 w-3 mr-1 text-amber-500" />
-            )}
-            {activity.action.includes("returned") && (
-              <ArrowDownIcon className="h-3 w-3 mr-1 text-green-500" />
-            )}
-            {(activity.action.includes("reported damaged") ||
-              activity.action.includes("reported stolen") ||
-              activity.action.includes("reported lost")) && (
-              <RefreshCw className="h-3 w-3 mr-1 text-red-500" />
-            )}
-            {activity.timestamp}
-          </div>
-        </div>
+    <div className="space-y-10 mt-5 max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-purple-500 scrollbar-track-transparent">
+      {activities.slice().reverse().map((activity) => (
+      <div className="flex items-center" key={activity.id}>
+      <div className="ml-4 space-y-1">
+      <p className="text-md font-medium text-purple-900 dark:text-purple-50">
+        {activity.user.name} &nbsp;
+        <span className="text-md font-medium text-purple-700 dark:text-purple-300">
+      {activity.action}
+      </span>
+      </p>
+  
+      </div>
+      <div className="ml-auto text-xs text-purple-600 dark:text-purple-400 flex items-center">
+      {activity.action.includes("checked out") && (
+        <ArrowDownIcon className="h-3 w-3 mr-1 text-amber-500" />
+      )}
+      {activity.action.includes("returned") && (
+        <ArrowUpIcon className="h-3 w-3 mr-1 text-green-500" />
+      )}
+      {(activity.action.includes("reported damaged") ||
+        activity.action.includes("reported stolen") ||
+        activity.action.includes("reported lost")) && (
+        <RefreshCw className="h-3 w-3 mr-1 text-red-500" />
+      )}
+      {activity.timestamp}
+      </div>
+      </div>
       ))}
     </div>
   );

@@ -18,36 +18,35 @@ interface Vendor {
   name: string;
   contact: string;
   phone: string;
-
 }
+
 interface InventoryItem {
-    _id: string;
-    name: string;
-    description: string; // Added description property
-    category: string;
-    quantity: number;
-    minQuantity: number;
-    unit: string;
-    location: string;
-    status: string;
-    condition: string;
-  }
+  _id: string;
+  name: string;
+  description: string;
+  category: string;
+  quantity: number;
+  minQuantity: number;
+  unit: string;
+  location: string;
+  status: string;
+  condition: string;
+}
 
 interface Order {
   _id: string;
-  vendor_id: string;
+  vendorId: string;
   items: string;
   quantity: number;
   expectedDelivery: Date;
   status: string;
   updated_at: string;
- 
 }
 
 interface VendorItem {
   _id: string;
-  vendor_id: string;
-  item_id: string;
+  vendorId: string;
+  itemId: string;
 }
 
 interface Notification {
@@ -55,22 +54,21 @@ interface Notification {
   message: string;
   type: string;
   recipient: string;
-  timestamp: Date
-
+  timestamp: Date;
 }
 
 interface Log {
   _id: string;
   action: string;
-  user_id: string;
+  userId: string;
   details: any;
   timestamp: Date;
 }
 
 interface InventoryUsage {
   _id: string;
-  item_id: string;
-  user_id: string;
+  itemId: string;
+  userId: string;
   quantity: number;
   action: string;
   timestamp: Date;
@@ -108,6 +106,7 @@ interface WebSocketContextType {
   roles: string[];
   setRoles: React.Dispatch<React.SetStateAction<string[]>>;
   error: string | null;
+  isConnected: boolean; // Added to track connection status
 }
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
@@ -126,256 +125,273 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
   const [slackManagement, setSlackManagement] = useState<SlackManagement[]>([]);
   const [roles, setRoles] = useState<string[]>(["admin", "manager", "employee"]);
   const [error, setError] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(false); // Track WebSocket connection
 
   useEffect(() => {
+    let socketInstance: Socket | null = null;
+
+    const connectWebSocket = (token: string) => {
+      console.log("Connecting WebSocket with token:", token.slice(0, 10) + "...");
+
+      socketInstance = io(`${process.env.NEXT_PUBLIC_API_URL}/realtime`, {
+        path: "/socket.io",
+        transports: ["websocket"],
+        query: { token },
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+      });
+
+      socketInstance.on("connect", () => {
+        console.log("WebSocket connected");
+        setIsConnected(true);
+        // Fetch initial inventory items
+        socketInstance!.emit("fetch_inventory_items", (items: InventoryItem[]) => {
+          console.log("Received initial inventory items:", items.length);
+          setInventoryItems(items);
+        });
+      });
+
+      socketInstance.on("connection_status", (data) => {
+        console.log("Connection status:", data);
+        if (data.status === "error") {
+          setError(`WebSocket error: ${data.message}`);
+          setIsConnected(false);
+        }
+      });
+
+      // Inventory items events
+      socketInstance.on("inventory_items_insert", (newItem: InventoryItem) => {
+        console.log("New inventory item:", newItem);
+        setInventoryItems((prev) => {
+          if (prev.some((item) => item._id === newItem._id)) return prev;
+          return [...prev, newItem];
+        });
+      });
+
+      socketInstance.on("inventory_items_update", (updatedItem: InventoryItem) => {
+        console.log("Updated inventory item:", updatedItem);
+        setInventoryItems((prev) =>
+          prev.map((item) => (item._id === updatedItem._id ? updatedItem : item))
+        );
+      });
+
+      socketInstance.on("inventory_items_delete", (data: { _id: string }) => {
+        console.log("Deleted inventory item:", data._id);
+        setInventoryItems((prev) => prev.filter((item) => item._id !== data._id));
+      });
+
+      // Other events (unchanged for brevity)
+      socketInstance.on("users_insert", (newUser: User) => {
+        console.log("New user:", newUser);
+        setUsers((prev) => {
+          if (prev.some((user) => user._id === newUser._id)) return prev;
+          return [...prev, newUser];
+        });
+        setRoles((prev) => {
+          const newRole = newUser.role;
+          return prev.includes(newRole) ? prev : [...prev, newRole];
+        });
+      });
+
+      socketInstance.on("users_update", (updatedUser: User) => {
+        console.log("Updated user:", updatedUser);
+        setUsers((prev) =>
+          prev.map((user) => (user._id === updatedUser._id ? updatedUser : user))
+        );
+      });
+
+      socketInstance.on("users_delete", (data: { _id: string }) => {
+        console.log("Deleted user:", data._id);
+        setUsers((prev) => {
+          const updatedUsers = prev.filter((user) => user._id !== data._id);
+          setRoles([...new Set(updatedUsers.map((user) => user.role))]);
+          return updatedUsers;
+        });
+      });
+
+      socketInstance.on("vendors_insert", (newVendor: Vendor) => {
+        console.log("New vendor:", newVendor);
+        setVendors((prev) => {
+          if (prev.some((vendor) => vendor._id === newVendor._id)) return prev;
+          return [...prev, newVendor];
+        });
+      });
+
+      socketInstance.on("vendors_update", (updatedVendor: Vendor) => {
+        console.log("Updated vendor:", updatedVendor);
+        setVendors((prev) =>
+          prev.map((vendor) =>
+            vendor._id === updatedVendor._id ? { ...vendor, ...updatedVendor } : vendor
+          )
+        );
+      });
+
+      socketInstance.on("vendors_delete", (data: { _id: string }) => {
+        console.log("Deleted vendor:", data._id);
+        setVendors((prev) => prev.filter((vendor) => vendor._id !== data._id));
+      });
+
+      socketInstance.on("orders_insert", (newOrder: Order) => {
+        console.log("New order:", newOrder);
+        setOrders((prev) => {
+          if (prev.some((order) => order._id === newOrder._id)) return prev;
+          return [...prev, newOrder];
+        });
+      });
+
+      socketInstance.on("orders_update", (updatedOrder: Order) => {
+        console.log("Updated order:", updatedOrder);
+        setOrders((prev) =>
+          prev.map((order) => (order._id === updatedOrder._id ? updatedOrder : order))
+        );
+      });
+
+      socketInstance.on("orders_delete", (data: { _id: string }) => {
+        console.log("Deleted order:", data._id);
+        setOrders((prev) => prev.filter((order) => order._id !== data._id));
+      });
+
+      socketInstance.on("vendor_items_insert", (newVendorItem: VendorItem) => {
+        console.log("New vendor item:", newVendorItem);
+        setVendorItems((prev) => {
+          if (prev.some((item) => item._id === newVendorItem._id)) return prev;
+          return [...prev, newVendorItem];
+        });
+      });
+
+      socketInstance.on("vendor_items_update", (updatedVendorItem: VendorItem) => {
+        console.log("Updated vendor item:", updatedVendorItem);
+        setVendorItems((prev) =>
+          prev.map((item) => (item._id === updatedVendorItem._id ? updatedVendorItem : item))
+        );
+      });
+
+      socketInstance.on("vendor_items_delete", (data: { _id: string }) => {
+        console.log("Deleted vendor item:", data._id);
+        setVendorItems((prev) => prev.filter((item) => item._id !== data._id));
+      });
+
+      socketInstance.on("notifications_insert", (newNotification: Notification) => {
+        console.log("New notification:", newNotification);
+        setNotifications((prev) => {
+          if (prev.some((notification) => notification._id === newNotification._id)) return prev;
+          return [...prev, newNotification];
+        });
+      });
+
+      socketInstance.on("notifications_update", (updatedNotification: Notification) => {
+        console.log("Updated notification:", updatedNotification);
+        setNotifications((prev) =>
+          prev.map((notification) =>
+            notification._id === updatedNotification._id ? updatedNotification : notification
+          )
+        );
+      });
+
+      socketInstance.on("notifications_delete", (data: { _id: string }) => {
+        console.log("Deleted notification:", data._id);
+        setNotifications((prev) => prev.filter((notification) => notification._id !== data._id));
+      });
+
+      socketInstance.on("logs_insert", (newLog: Log) => {
+        console.log("New log:", newLog);
+        setLogs((prev) => {
+          if (prev.some((log) => log._id === newLog._id)) return prev;
+          return [...prev, newLog];
+        });
+      });
+
+      socketInstance.on("logs_update", (updatedLog: Log) => {
+        console.log("Updated log:", updatedLog);
+        setLogs((prev) => prev.map((log) => (log._id === updatedLog._id ? updatedLog : log)));
+      });
+
+      socketInstance.on("logs_delete", (data: { _id: string }) => {
+        console.log("Deleted log:", data._id);
+        setLogs((prev) => prev.filter((log) => log._id !== data._id));
+      });
+
+      socketInstance.on("inventory_usage_insert", (newUsage: InventoryUsage) => {
+        console.log("New inventory usage:", newUsage);
+        setInventoryUsage((prev) => {
+          if (prev.some((usage) => usage._id === newUsage._id)) return prev;
+          return [...prev, newUsage];
+        });
+      });
+
+      socketInstance.on("inventory_usage_update", (updatedUsage: InventoryUsage) => {
+        console.log("Updated inventory usage:", updatedUsage);
+        setInventoryUsage((prev) =>
+          prev.map((usage) => (usage._id === updatedUsage._id ? updatedUsage : usage))
+        );
+      });
+
+      socketInstance.on("inventory_usage_delete", (data: { _id: string }) => {
+        console.log("Deleted inventory usage:", data._id);
+        setInventoryUsage((prev) => prev.filter((usage) => usage._id !== data._id));
+      });
+
+      socketInstance.on("slack_management_insert", (newSlack: SlackManagement) => {
+        console.log("New slack management:", newSlack);
+        setSlackManagement((prev) => {
+          if (prev.some((slack) => slack._id === newSlack._id)) return prev;
+          return [...prev, newSlack];
+        });
+      });
+
+      socketInstance.on("slack_management_update", (updatedSlack: SlackManagement) => {
+        console.log("Updated slack management:", updatedSlack);
+        setSlackManagement((prev) =>
+          prev.map((slack) => (slack._id === updatedSlack._id ? updatedSlack : slack))
+        );
+      });
+
+      socketInstance.on("slack_management_delete", (data: { _id: string }) => {
+        console.log("Deleted slack management:", data._id);
+        setSlackManagement((prev) => prev.filter((slack) => slack._id !== data._id));
+      });
+
+      socketInstance.on("disconnect", () => {
+        console.log("WebSocket disconnected");
+        setIsConnected(false);
+      });
+
+      socketInstance.on("connect_error", (err: Error) => {
+        console.error("WebSocket connection error:", err.message);
+        setIsConnected(false);
+        if (err.message.includes("Invalid token")) {
+          console.log("Invalid token detected, redirecting to login...");
+          localStorage.removeItem("token");
+          router.push("/api/auth/login");
+        } else {
+          setError(`Failed to connect to real-time updates: ${err.message}. Please refresh the page.`);
+        }
+      });
+
+      setSocket(socketInstance);
+    };
+
+    // Watch for token changes
     const token = localStorage.getItem("token");
-    if (!token) {
-      console.log("No token found, skipping WebSocket connection.");
-      return;
+    if (token) {
+      connectWebSocket(token);
     }
 
-    console.log("Attempting to connect to WebSocket with token:");
-
-    const socketInstance = io(`${process.env.NEXT_PUBLIC_API_URL}/realtime`, {
-      path: "/socket.io",
-      transports: ["websocket"],
-      query: { token },
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-    });
-
-    socketInstance.on("connect", () => {
-      console.log("Connected to WebSocket server");
-    });
-
-    socketInstance.on("connection_status", (data) => {
-      console.log("Connection status:", data);
-      if (data.status === "error") {
-        setError(`WebSocket error: ${data.message}`);
+    // Poll for token changes (e.g., after login)
+    const tokenCheckInterval = setInterval(() => {
+      const newToken = localStorage.getItem("token");
+      if (newToken && !socketInstance) {
+        console.log("Token detected, connecting WebSocket...");
+        connectWebSocket(newToken);
       }
-    });
-
-    // Users events
-    socketInstance.on("users_insert", (newUser: User) => {
-      console.log("New user:", newUser);
-      setUsers((prev) => {
-        if (prev.some((user) => user._id === newUser._id)) return prev;
-        return [...prev, newUser];
-      });
-      setRoles((prev) => {
-        const newRole = newUser.role;
-        return prev.includes(newRole) ? prev : [...prev, newRole];
-      });
-    });
-
-    socketInstance.on("users_update", (updatedUser: User) => {
-      console.log("Updated user:", updatedUser);
-      setUsers((prev) =>
-        prev.map((user) => (user._id === updatedUser._id ? updatedUser : user))
-      );
-    });
-
-    socketInstance.on("users_delete", (data: { _id: string }) => {
-      console.log("Deleted user:", data._id);
-      setUsers((prev) => {
-        const updatedUsers = prev.filter((user) => user._id !== data._id);
-        setRoles([...new Set(updatedUsers.map((user) => user.role))]);
-        return updatedUsers;
-      });
-    });
-
-    // Vendors events
-    socketInstance.on("vendors_insert", (newVendor: Vendor) => {
-      console.log("New vendor:", newVendor);
-      setVendors((prev) => {
-        if (prev.some((vendor) => vendor._id === newVendor._id)) return prev;
-        return [...prev, newVendor];
-      });
-    });
-
-    socketInstance.on("vendors_update", (updatedVendor: Vendor) => {
-      console.log("Updated vendor:", updatedVendor);
-      setVendors((prev) =>
-        prev.map((vendor) =>
-          vendor._id === updatedVendor._id ? { ...vendor, ...updatedVendor } : vendor
-        )
-      );
-    });
-
-    socketInstance.on("vendors_delete", (data: { _id: string }) => {
-      console.log("Deleted vendor:", data._id);
-      setVendors((prev) => prev.filter((vendor) => vendor._id !== data._id));
-    });
-
-    
-
-    // Inventory items events
-    socketInstance.on("inventory_items_insert", (newItem: InventoryItem) => {
-      console.log("New inventory item:", newItem);
-      setInventoryItems((prev) => {
-        if (prev.some((item) => item._id === newItem._id)) return prev;
-        return [...prev, newItem];
-      });
-    });
-
-    socketInstance.on("inventory_items_update", (updatedItem: InventoryItem) => {
-      console.log("Updated inventory item:", updatedItem);
-      setInventoryItems((prev) =>
-        prev.map((item) => (item._id === updatedItem._id ? updatedItem : item))
-      );
-    });
-
-    socketInstance.on("inventory_items_delete", (data: { _id: string }) => {
-      console.log("Deleted inventory item:", data._id);
-      setInventoryItems((prev) => prev.filter((item) => item._id !== data._id));
-    });
-
-    // Orders events
-    socketInstance.on("orders_insert", (newOrder: Order) => {
-      console.log("New order:", newOrder);
-      setOrders((prev) => {
-        if (prev.some((order) => order._id === newOrder._id)) return prev;
-        return [...prev, newOrder];
-      });
-    });
-
-    socketInstance.on("orders_update", (updatedOrder: Order) => {
-      console.log("Updated order:", updatedOrder);
-      setOrders((prev) =>
-        prev.map((order) => (order._id === updatedOrder._id ? updatedOrder : order))
-      );
-    });
-
-    socketInstance.on("orders_delete", (data: { _id: string }) => {
-      console.log("Deleted order:", data._id);
-      setOrders((prev) => prev.filter((order) => order._id !== data._id));
-    });
-
-    // Vendor items events
-    socketInstance.on("vendor_items_insert", (newVendorItem: VendorItem) => {
-      console.log("New vendor item:", newVendorItem);
-      setVendorItems((prev) => {
-        if (prev.some((item) => item._id === newVendorItem._id)) return prev;
-        return [...prev, newVendorItem];
-      });
-    });
-
-    socketInstance.on("vendor_items_update", (updatedVendorItem: VendorItem) => {
-      console.log("Updated vendor item:", updatedVendorItem);
-      setVendorItems((prev) =>
-        prev.map((item) => (item._id === updatedVendorItem._id ? updatedVendorItem : item))
-      );
-    });
-
-    socketInstance.on("vendor_items_delete", (data: { _id: string }) => {
-      console.log("Deleted vendor item:", data._id);
-      setVendorItems((prev) => prev.filter((item) => item._id !== data._id));
-    });
-
-    // Notifications events
-    socketInstance.on("notifications_insert", (newNotification: Notification) => {
-      console.log("New notification:", newNotification);
-      setNotifications((prev) => {
-        if (prev.some((notification) => notification._id === newNotification._id)) return prev;
-        return [...prev, newNotification];
-      });
-    });
-
-    socketInstance.on("notifications_update", (updatedNotification: Notification) => {
-      console.log("Updated notification:", updatedNotification);
-      setNotifications((prev) =>
-        prev.map((notification) =>
-          notification._id === updatedNotification._id ? updatedNotification : notification
-        )
-      );
-    });
-
-    socketInstance.on("notifications_delete", (data: { _id: string }) => {
-      console.log("Deleted notification:", data._id);
-      setNotifications((prev) => prev.filter((notification) => notification._id !== data._id));
-    });
-
-    // Logs events
-    socketInstance.on("logs_insert", (newLog: Log) => {
-      console.log("New log:", newLog);
-      setLogs((prev) => {
-        if (prev.some((log) => log._id === newLog._id)) return prev;
-        return [...prev, newLog];
-      });
-    });
-
-    socketInstance.on("logs_update", (updatedLog: Log) => {
-      console.log("Updated log:", updatedLog);
-      setLogs((prev) => prev.map((log) => (log._id === updatedLog._id ? updatedLog : log)));
-    });
-
-    socketInstance.on("logs_delete", (data: { _id: string }) => {
-      console.log("Deleted log:", data._id);
-      setLogs((prev) => prev.filter((log) => log._id !== data._id));
-    });
-
-    // Inventory usage events
-    socketInstance.on("inventory_usage_insert", (newUsage: InventoryUsage) => {
-      console.log("New inventory usage:", newUsage);
-      setInventoryUsage((prev) => {
-        if (prev.some((usage) => usage._id === newUsage._id)) return prev;
-        return [...prev, newUsage];
-      });
-    });
-
-    socketInstance.on("inventory_usage_update", (updatedUsage: InventoryUsage) => {
-      console.log("Updated inventory usage:", updatedUsage);
-      setInventoryUsage((prev) =>
-        prev.map((usage) => (usage._id === updatedUsage._id ? updatedUsage : usage))
-      );
-    });
-
-    socketInstance.on("inventory_usage_delete", (data: { _id: string }) => {
-      console.log("Deleted inventory usage:", data._id);
-      setInventoryUsage((prev) => prev.filter((usage) => usage._id !== data._id));
-    });
-
-    // Slack management events
-    socketInstance.on("slack_management_insert", (newSlack: SlackManagement) => {
-      console.log("New slack management:", newSlack);
-      setSlackManagement((prev) => {
-        if (prev.some((slack) => slack._id === newSlack._id)) return prev;
-        return [...prev, newSlack];
-      });
-    });
-
-    socketInstance.on("slack_management_update", (updatedSlack: SlackManagement) => {
-      console.log("Updated slack management:", updatedSlack);
-      setSlackManagement((prev) =>
-        prev.map((slack) => (slack._id === updatedSlack._id ? updatedSlack : slack))
-      );
-    });
-
-    socketInstance.on("slack_management_delete", (data: { _id: string }) => {
-      console.log("Deleted slack management:", data._id);
-      setSlackManagement((prev) => prev.filter((slack) => slack._id !== data._id));
-    });
-
-    socketInstance.on("disconnect", () => {
-      console.log("Disconnected from WebSocket server");
-    });
-
-    socketInstance.on("connect_error", (err) => {
-      console.error("WebSocket connection error:", err.message);
-      if (err.message.includes("Invalid token")) {
-        console.log("Invalid token detected, redirecting to login...");
-        localStorage.removeItem("token");
-        router.push("/api/auth/login");
-      } else {
-        setError(`Failed to connect to real-time updates: ${err.message}. Please refresh the page.`);
-      }
-    });
-
-    setSocket(socketInstance);
+    }, 1000);
 
     return () => {
-      socketInstance.disconnect();
+      clearInterval(tokenCheckInterval);
+      if (socketInstance) {
+        socketInstance.disconnect();
+      }
     };
   }, [router]);
 
@@ -403,6 +419,7 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
         roles,
         setRoles,
         error,
+        isConnected,
       }}
     >
       {children}

@@ -12,16 +12,19 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { useToast } from "@/components/ui/use-toast";
 import { Edit, Trash2, ArrowUpDown, FileText } from "lucide-react";
 import { ReportItemUsage } from "@/components/report-item-usage";
+import { useWebSocket } from "@/context/WebSocketContext";
 
 const categories = ["Furniture", "Electronics", "Office Equipment", "Linens", "Food Service", "Supplies", "Other"];
 const locations = [
-  "Main Storage",
-  "Tech Room",
-  "Supply Closet A",
-  "Supply Closet B",
-  "Linen Storage",
-  "Kitchen Storage",
-  "Office Storage",
+  "Main Office",
+  "Tech Closet 2nd Floor",
+  "Janitors Closet 1st",
+  "Janitors Closet 2nd",
+  "Janitors Closet 3rd",
+  "Activites Storage",
+  "Geo Storage",
+  "Bops Storage",
+  "Technical Room",
   "Other (Add your own)",
 ];
 const conditions = ["OK", "DAMAGED", "LOST", "STOLEN", "OTHER (Add your own)"];
@@ -41,7 +44,12 @@ interface InventoryItem {
   condition: string;
 }
 
-export function InventoryFullView({ inventoryItems }: { inventoryItems: InventoryItem[] }) {
+interface InventoryFullViewProps {
+  inventoryItems?: InventoryItem[]; // Optional prop, fallback if context is empty
+}
+
+export function InventoryFullView({ inventoryItems: propInventoryItems }: InventoryFullViewProps) {
+  const { inventoryItems: contextInventoryItems, isConnected } = useWebSocket();
   const containerRef = useRef<HTMLDivElement>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -53,6 +61,9 @@ export function InventoryFullView({ inventoryItems }: { inventoryItems: Inventor
   const [formError, setFormError] = useState<string | null>(null);
   const [showReportUsageDialog, setShowReportUsageDialog] = useState(false);
   const { toast } = useToast();
+
+  // Use context inventoryItems if available, else fall back to prop
+  const inventoryItems = contextInventoryItems.length > 0 ? contextInventoryItems : propInventoryItems || [];
 
   const [formData, setFormData] = useState({
     name: "",
@@ -137,7 +148,7 @@ export function InventoryFullView({ inventoryItems }: { inventoryItems: Inventor
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/inventory-items/${itemId}`, {
         method: "DELETE",
         headers: {
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
@@ -281,6 +292,7 @@ export function InventoryFullView({ inventoryItems }: { inventoryItems: Inventor
 
     try {
       const updatedItem = {
+        _id: itemToEdit?._id,
         name: formData.name,
         category: formData.category === "Other" ? formData.customCategory : formData.category,
         quantity,
@@ -289,7 +301,7 @@ export function InventoryFullView({ inventoryItems }: { inventoryItems: Inventor
         location: formData.location === "Other (Add your own)" ? formData.customLocation : formData.location,
         status: formData.status,
         condition: formData.condition === "OTHER (Add your own)" ? formData.customCondition : formData.condition,
-        description: formData.description || undefined,
+        description: formData.description || "",
         updated_at: new Date().toISOString(),
       };
 
@@ -344,6 +356,11 @@ export function InventoryFullView({ inventoryItems }: { inventoryItems: Inventor
 
   return (
     <div ref={containerRef} tabIndex={-1} className="space-y-4">
+      {!isConnected && (
+        <div className="text-yellow-600 dark:text-yellow-400">
+          Connecting to real-time updates...
+        </div>
+      )}
       <div className="flex flex-col space-y-2 md:flex-row md:items-center md:justify-between md:space-y-0">
         <div className="flex flex-1 items-center space-x-2">
           <Input
@@ -708,7 +725,7 @@ export function InventoryFullView({ inventoryItems }: { inventoryItems: Inventor
                     <Textarea
                       id="description"
                       name="description"
-                      value={formData.description}
+    value={formData.description}
                       onChange={handleInputChange}
                       placeholder={formData.description || "Add any additional details about this item..."}
                       className="min-h-[100px] border-purple-200 dark:border-purple-800"

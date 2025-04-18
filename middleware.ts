@@ -4,7 +4,7 @@ export async function middleware(req: NextRequest) {
   console.log('Middleware executed');
 
   // Check for Auth0 session cookie (appSession)
-  const sessionCookie = await req.cookies.get('appSession')?.value || null;
+  const sessionCookie = req.cookies.get('appSession')?.value || null;
 
   // If no session cookie, redirect to login
   if (!sessionCookie) {

@@ -14,13 +14,15 @@ import { DialogFooter } from "@/components/ui/dialog";
 // Categories, locations, conditions, statuses, and units for dropdowns
 const categories = ["Furniture", "Electronics", "Office Equipment", "Linens", "Food Service", "Supplies", "Other"];
 const locations = [
-  "Main Storage",
-  "Tech Room",
-  "Supply Closet A",
-  "Supply Closet B",
-  "Linen Storage",
-  "Kitchen Storage",
-  "Office Storage",
+  "Main Office",
+  "Tech Closet 2nd Floor",
+  "Janitors Closet 1st",
+  "Janitors Closet 2nd",
+  "Janitors Closet 3rd",
+  "Activites Storage",
+  "Geo Storage",
+  "Bops Storage",
+  "Technical Room",
   "Other (Add your own)",
 ];
 const conditions = ["OK", "DAMAGED", "LOST", "STOLEN", "OTHER (Add your own)"];

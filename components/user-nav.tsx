@@ -5,6 +5,10 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Sun, Moon } from "lucide-react";
 import { useTheme } from "next-themes"
+import Link from "next/link"
+
+
+
 export function UserNav() {
   const router = useRouter();
   const { theme, setTheme } = useTheme()
@@ -65,6 +69,7 @@ export function UserNav() {
   return (
     <div className="flex items-center space-x-2">
       {/* Theme Toggle Button */}
+    
       <Button
         variant="outline"
         size="icon"
@@ -90,7 +95,6 @@ export function UserNav() {
                 localStorage.removeItem("token");
                 window.location.href = "/api/auth/logout";
               }}
-              
             >
               Logout
             </a>

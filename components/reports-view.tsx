@@ -1,20 +1,24 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { FileDown, AlertTriangle, Calendar, AlertCircle } from "lucide-react"
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts"
+import { FileDown, AlertTriangle, Calendar, AlertCircle, XCircle } from "lucide-react"
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Cell } from "recharts"
+import { ExportDialog } from "@/components/export-dialog"
+import dotenv from "dotenv"
+dotenv.config()
 import {
   processMonthlyUsage,
   processWeeklyUsage,
   getMostPopularItems,
   getUnavailableItems,
   getLowStockItems,
+  getItemsByPeriod,
   type InventoryItem,
   type UsageLog,
   type UsageData,
@@ -74,10 +78,18 @@ export function ReportsView() {
   const [usageLogs, setUsageLogs] = useState<UsageLog[]>([])
   const [usageData, setUsageData] = useState<UsageData[]>([])
   const [popularItems, setPopularItems] = useState<ItemPopularity[]>([])
+  const [filteredItems, setFilteredItems] = useState<ItemPopularity[] | null>(null)
+  const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null)
   const [unavailableItems, setUnavailableItems] = useState<UnavailableItem[]>([])
   const [lowStockItems, setLowStockItems] = useState<InventoryItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [exportDialogOpen, setExportDialogOpen] = useState(false)
+
+  // Refs for export
+  const chartRef = useRef<HTMLDivElement>(null)
+  const tableRef = useRef<HTMLDivElement>(null)
+  const statsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     async function fetchData() {
@@ -121,6 +133,8 @@ export function ReportsView() {
 
         setUsageData(timeframe === "monthly" ? monthlyData : weeklyData)
         setPopularItems(popular)
+        setFilteredItems(null) // Reset filtered items
+        setSelectedPeriod(null) // Reset selected period
         setUnavailableItems(unavailable)
         setLowStockItems(lowStock)
 
@@ -146,8 +160,17 @@ export function ReportsView() {
           ? processMonthlyUsage(usageLogs, inventoryItems)
           : processWeeklyUsage(usageLogs, inventoryItems),
       )
+      // Reset filtered items when timeframe changes
+      setFilteredItems(null)
+      setSelectedPeriod(null)
     }
   }, [timeframe, usageLogs, inventoryItems])
+
+  // Reset filtered items when report type changes
+  useEffect(() => {
+    setFilteredItems(null)
+    setSelectedPeriod(null)
+  }, [reportType])
 
   // Calculate totals and stats
   const totalCheckouts = usageData.reduce((sum, item) => sum + item.checkouts, 0)
@@ -162,6 +185,33 @@ export function ReportsView() {
   if (popularItems.length > 0) {
     mostPopularItem = popularItems[0]
   }
+
+  // Handle bar click to filter items
+  const handleBarClick = (data: any) => {
+    if (!data || !data.activePayload || !data.activePayload[0]) return
+
+    const period = data.activePayload[0].payload.period
+
+    if (selectedPeriod === period) {
+      // If clicking the same period, clear the filter
+      setFilteredItems(null)
+      setSelectedPeriod(null)
+    } else {
+      // Filter items for the selected period
+      const periodItems = getItemsByPeriod(usageLogs, inventoryItems, period, timeframe)
+      setFilteredItems(periodItems)
+      setSelectedPeriod(period)
+    }
+  }
+
+  // Clear filter
+  const clearFilter = () => {
+    setFilteredItems(null)
+    setSelectedPeriod(null)
+  }
+
+  // Items to display in the table
+  const displayItems = filteredItems || popularItems
 
   // Loading state
   if (loading) {
@@ -201,13 +251,13 @@ export function ReportsView() {
             <SelectValue placeholder="Select report type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="usage">Usage & Popularity</SelectItem>
+            <SelectItem value="usage">Usage Trends</SelectItem>
             <SelectItem value="alerts">Low Stock Alerts</SelectItem>
             <SelectItem value="unavailable">Unavailable Items</SelectItem>
           </SelectContent>
         </Select>
 
-        <Button className="bg-purple-700 hover:bg-purple-800 text-white">
+        <Button className="bg-purple-700 hover:bg-purple-800 text-white" onClick={() => setExportDialogOpen(true)}>
           <FileDown className="mr-2 h-4 w-4" />
           Export Report
         </Button>
@@ -225,7 +275,7 @@ export function ReportsView() {
                   </div>
                 </CardTitle>
                 <CardDescription className="text-purple-700 dark:text-purple-300">
-                  Number of checkouts with most popular items
+                  Usage Trends Across Items
                 </CardDescription>
               </div>
 
@@ -248,9 +298,14 @@ export function ReportsView() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="h-[400px] w-full">
+            <div
+              id="report-chart-container"
+              ref={chartRef}
+              className="h-[400px] w-full"
+              style={{ aspectRatio: "16/9" }}
+            >
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={usageData}>
+                <BarChart data={usageData} onClick={handleBarClick}>
                   <XAxis dataKey="period" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                   <YAxis
                     stroke="#888888"
@@ -260,6 +315,7 @@ export function ReportsView() {
                     tickFormatter={(value) => `${value}`}
                   />
                   <Tooltip
+                    cursor={{ fill: "rgba(139, 92, 246, 0.1)" }}
                     contentStyle={{
                       backgroundColor: "#f3e8ff",
                       borderColor: "#d8b4fe",
@@ -273,26 +329,39 @@ export function ReportsView() {
                             <p className="font-bold text-purple-900 dark:text-purple-50 mb-1">
                               {payload[0].payload.period}
                             </p>
-                            <p className="text-purple-700 dark:text-purple-300">Checkouts: {payload[0].value}</p>
+                            <p className="text-purple-700 dark:text-purple-300">Usages: {payload[0].value}</p>
                             <p className="text-purple-900 dark:text-purple-50 font-medium mt-2">
-                              Most Popular: {payload[0].payload.popularItem}
+                              Most Used: {payload[0].payload.popularItem}
                             </p>
+                            <p className="text-xs text-purple-600 mt-1 italic">Click to filter table data</p>
                           </div>
                         )
                       }
                       return null
                     }}
                   />
-                  <Bar dataKey="checkouts" fill="#8b5cf6" radius={[4, 4, 0, 0]} name="Checkouts" />
+                  <Bar dataKey="checkouts" name="Checkouts" radius={[4, 4, 0, 0]}>
+                    {usageData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.period === selectedPeriod ? "#9333ea" : "#8b5cf6"}
+                        cursor="pointer"
+                      />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
 
-            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div
+              id="report-stats-container"
+              ref={statsRef}
+              className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+            >
               <Card className="border-purple-200 dark:border-purple-800">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-purple-900 dark:text-purple-100">
-                    Total Checkouts
+                    Total Usage
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -306,7 +375,7 @@ export function ReportsView() {
               <Card className="border-purple-200 dark:border-purple-800">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-purple-900 dark:text-purple-100">
-                    Average Per {timeframe === "monthly" ? "Month" : "Week"}
+                    Average Items Used / {timeframe === "monthly" ? "Month" : "Week"}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -327,44 +396,55 @@ export function ReportsView() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-purple-900 dark:text-purple-50">{busiestPeriod.period}</div>
-                  <p className="text-xs text-purple-700 dark:text-purple-300">{busiestPeriod.checkouts} checkouts</p>
+                  <p className="text-xs text-purple-700 dark:text-purple-300">{busiestPeriod.checkouts} Items Used</p>
                 </CardContent>
               </Card>
 
               <Card className="border-purple-200 dark:border-purple-800">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-purple-900 dark:text-purple-100">
-                    Most Popular Item
+                    Most Used Item
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-purple-900 dark:text-purple-50">{mostPopularItem.name}</div>
-                  <p className="text-xs text-purple-700 dark:text-purple-300">
-                    {mostPopularItem.checkouts} total checkouts
-                  </p>
+                  <p className="text-xs text-purple-700 dark:text-purple-300">{mostPopularItem.checkouts} Uses</p>
                 </CardContent>
               </Card>
             </div>
 
-            <div className="mt-6">
-              <h3 className="text-lg font-medium text-purple-900 dark:text-purple-50 mb-4">Top 5 Most Popular Items</h3>
+            <div id="report-table-container" ref={tableRef} className="mt-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium text-purple-900 dark:text-purple-50">
+                  {selectedPeriod ? `Usage Record - ${selectedPeriod}` : "Top 5 Most Used Items"}
+                </h3>
+                {selectedPeriod && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearFilter}
+                    className="flex items-center text-purple-700 border-purple-200"
+                  >
+                    <XCircle className="mr-1 h-4 w-4" />
+                    Clear Filter
+                  </Button>
+                )}
+              </div>
               <Table>
                 <TableHeader className="bg-purple-100 dark:bg-purple-900">
                   <TableRow>
                     <TableHead className="text-purple-900 dark:text-purple-50">Item</TableHead>
                     <TableHead className="text-purple-900 dark:text-purple-50">Category</TableHead>
-                    <TableHead className="text-purple-900 dark:text-purple-50">Total Checkouts</TableHead>
-                    <TableHead className="text-purple-900 dark:text-purple-50">Average Duration</TableHead>
-                    <TableHead className="text-purple-900 dark:text-purple-50">Popularity Trend</TableHead>
+                    <TableHead className="text-purple-900 dark:text-purple-50">Total Usages</TableHead>
+                    <TableHead className="text-purple-900 dark:text-purple-50">Usage Trend</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {popularItems.map((item, index) => (
+                  {displayItems.map((item, index) => (
                     <TableRow key={index}>
                       <TableCell className="font-medium text-purple-900 dark:text-purple-50">{item.name}</TableCell>
                       <TableCell className="text-purple-700 dark:text-purple-300">{item.category}</TableCell>
                       <TableCell className="text-purple-900 dark:text-purple-50">{item.checkouts}</TableCell>
-                      <TableCell className="text-purple-700 dark:text-purple-300">{item.averageDuration}</TableCell>
                       <TableCell
                         className={
                           item.trend?.includes("↑")
@@ -376,9 +456,9 @@ export function ReportsView() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {popularItems.length === 0 && (
+                  {displayItems.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-4 text-purple-700 dark:text-purple-300">
+                      <TableCell colSpan={4} className="text-center py-4 text-purple-700 dark:text-purple-300">
                         No usage data available
                       </TableCell>
                     </TableRow>
@@ -404,54 +484,56 @@ export function ReportsView() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader className="bg-purple-100 dark:bg-purple-900">
-                <TableRow>
-                  <TableHead className="text-purple-900 dark:text-purple-50">Item ID</TableHead>
-                  <TableHead className="text-purple-900 dark:text-purple-50">Name</TableHead>
-                  <TableHead className="text-purple-900 dark:text-purple-50">Category</TableHead>
-                  <TableHead className="text-purple-900 dark:text-purple-50">Current Quantity</TableHead>
-                  <TableHead className="text-purple-900 dark:text-purple-50">Threshold</TableHead>
-                  <TableHead className="text-purple-900 dark:text-purple-50">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {lowStockItems.map((item) => {
-                  const isCritical = item.quantity < item.minQuantity * 0.5
-                  return (
-                    <TableRow key={item._id} className="hover:bg-purple-50 dark:hover:bg-purple-900/50">
-                      <TableCell className="font-medium text-purple-900 dark:text-purple-50">
-                        {item._id.substring(item._id.length - 8)}
-                      </TableCell>
-                      <TableCell className="text-purple-900 dark:text-purple-50">{item.name}</TableCell>
-                      <TableCell className="text-purple-700 dark:text-purple-300">{item.category}</TableCell>
-                      <TableCell className="text-purple-900 dark:text-purple-50">{item.quantity}</TableCell>
-                      <TableCell className="text-purple-700 dark:text-purple-300">{item.minQuantity}</TableCell>
-                      <TableCell>
-                        <Badge
-                          className={
-                            isCritical
-                              ? "bg-red-100 text-red-800 hover:bg-red-100 dark:bg-red-900 dark:text-red-100"
-                              : "bg-amber-100 text-amber-800 hover:bg-amber-100 dark:bg-amber-900 dark:text-amber-100"
-                          }
-                        >
-                          {isCritical ? "Critical" : "Warning"}
-                        </Badge>
+            <div id="report-table-container" ref={tableRef}>
+              <Table>
+                <TableHeader className="bg-purple-100 dark:bg-purple-900">
+                  <TableRow>
+                    <TableHead className="text-purple-900 dark:text-purple-50">Item ID</TableHead>
+                    <TableHead className="text-purple-900 dark:text-purple-50">Name</TableHead>
+                    <TableHead className="text-purple-900 dark:text-purple-50">Category</TableHead>
+                    <TableHead className="text-purple-900 dark:text-purple-50">Current Quantity</TableHead>
+                    <TableHead className="text-purple-900 dark:text-purple-50">Threshold</TableHead>
+                    <TableHead className="text-purple-900 dark:text-purple-50">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {lowStockItems.map((item) => {
+                    const isCritical = item.quantity < item.minQuantity * 0.5
+                    return (
+                      <TableRow key={item._id} className="hover:bg-purple-50 dark:hover:bg-purple-900/50">
+                        <TableCell className="font-medium text-purple-900 dark:text-purple-50">
+                          {item._id.substring(item._id.length - 8)}
+                        </TableCell>
+                        <TableCell className="text-purple-900 dark:text-purple-50">{item.name}</TableCell>
+                        <TableCell className="text-purple-700 dark:text-purple-300">{item.category}</TableCell>
+                        <TableCell className="text-purple-900 dark:text-purple-50">{item.quantity}</TableCell>
+                        <TableCell className="text-purple-700 dark:text-purple-300">{item.minQuantity}</TableCell>
+                        <TableCell>
+                          <Badge
+                            className={
+                              isCritical
+                                ? "bg-red-100 text-red-800 hover:bg-red-100 dark:bg-red-900 dark:text-red-100"
+                                : "bg-amber-100 text-amber-800 hover:bg-amber-100 dark:bg-amber-900 dark:text-amber-100"
+                            }
+                          >
+                            {isCritical ? "Critical" : "Warning"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                  {lowStockItems.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-4 text-purple-700 dark:text-purple-300">
+                        No low stock items found
                       </TableCell>
                     </TableRow>
-                  )
-                })}
-                {lowStockItems.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-4 text-purple-700 dark:text-purple-300">
-                      No low stock items found
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
 
-            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div id="report-stats-container" ref={statsRef} className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <Card className="border-purple-200 dark:border-purple-800">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-purple-900 dark:text-purple-100">
@@ -462,23 +544,11 @@ export function ReportsView() {
                   <div className="text-2xl font-bold text-red-600 dark:text-red-400">
                     {lowStockItems.filter((item) => item.quantity < item.minQuantity * 0.5).length}
                   </div>
-                  <p className="text-xs text-purple-700 dark:text-purple-300">Require immediate attention</p>
+                  <p className="text-xs text-purple-700 dark:text-purple-300">Should be restocked soon!</p>
                 </CardContent>
               </Card>
 
-              <Card className="border-purple-200 dark:border-purple-800">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-purple-900 dark:text-purple-100">
-                    Warning Items
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                    {lowStockItems.filter((item) => item.quantity >= item.minQuantity * 0.5).length}
-                  </div>
-                  <p className="text-xs text-purple-700 dark:text-purple-300">Should be restocked soon</p>
-                </CardContent>
-              </Card>
+             
 
              
             </div>
@@ -500,72 +570,57 @@ export function ReportsView() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader className="bg-purple-100 dark:bg-purple-900">
-                <TableRow>
-                  <TableHead className="text-purple-900 dark:text-purple-50">Item Name</TableHead>
-                  <TableHead className="text-purple-900 dark:text-purple-50">Category</TableHead>
-                  <TableHead className="text-purple-900 dark:text-purple-50">Quantity</TableHead>
-                  <TableHead className="text-purple-900 dark:text-purple-50">Reason</TableHead>
-                  <TableHead className="text-purple-900 dark:text-purple-50">Date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {unavailableItems.map((item, index) => (
-                  <TableRow key={index} className="hover:bg-purple-50 dark:hover:bg-purple-900/50">
-                    <TableCell className="font-medium text-purple-900 dark:text-purple-50">{item.name}</TableCell>
-                    <TableCell className="text-purple-700 dark:text-purple-300">{item.category}</TableCell>
-                    <TableCell className="text-purple-900 dark:text-purple-50">{item.quantity}</TableCell>
-                    <TableCell>
-                      <Badge
-                        className={
-                          item.reason === "Missing" ||
-                          item.reason === "reportedStolen" ||
-                          item.reason === "reportedLost"
-                            ? "bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-100"
-                            : "bg-red-100 text-red-800 hover:bg-red-100 dark:bg-red-900 dark:text-red-100"
-                        }
-                      >
-                        {item.reason === "reportedStolen"
-                          ? "Stolen"
-                          : item.reason === "reportedLost"
-                            ? "Lost"
-                            : item.reason}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-purple-700 dark:text-purple-300">{item.date}</TableCell>
-                  </TableRow>
-                ))}
-                {unavailableItems.length === 0 && (
+            <div id="report-table-container" ref={tableRef}>
+              <Table>
+                <TableHeader className="bg-purple-100 dark:bg-purple-900">
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-4 text-purple-700 dark:text-purple-300">
-                      No unavailable items found
-                    </TableCell>
+                    <TableHead className="text-purple-900 dark:text-purple-50">Item Name</TableHead>
+                    <TableHead className="text-purple-900 dark:text-purple-50">Category</TableHead>
+                    <TableHead className="text-purple-900 dark:text-purple-50">Quantity</TableHead>
+                    <TableHead className="text-purple-900 dark:text-purple-50">Reason</TableHead>
+                    <TableHead className="text-purple-900 dark:text-purple-50">Date</TableHead>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {unavailableItems.map((item, index) => (
+                    <TableRow key={index} className="hover:bg-purple-50 dark:hover:bg-purple-900/50">
+                      <TableCell className="font-medium text-purple-900 dark:text-purple-50">{item.name}</TableCell>
+                      <TableCell className="text-purple-700 dark:text-purple-300">{item.category}</TableCell>
+                      <TableCell className="text-purple-900 dark:text-purple-50">{item.quantity}</TableCell>
+                      <TableCell>
+                        <Badge
+                          className={
+                            item.reason === "Missing" ||
+                            item.reason === "reportedStolen" ||
+                            item.reason === "reportedLost"
+                              ? "bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-100"
+                              : "bg-red-100 text-red-800 hover:bg-red-100 dark:bg-red-900 dark:text-red-100"
+                          }
+                        >
+                          {item.reason === "reportedStolen"
+                            ? "Stolen"
+                            : item.reason === "reportedLost"
+                              ? "Lost"
+                              : item.reason === "reportedDamaged"
+                                ? "Damaged"
+                                : item.reason}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-purple-700 dark:text-purple-300">{item.date}</TableCell>
+                    </TableRow>
+                  ))}
+                  {unavailableItems.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-4 text-purple-700 dark:text-purple-300">
+                        No unavailable items found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
 
-            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
-              <Card className="border-purple-200 dark:border-purple-800">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-purple-900 dark:text-purple-100">
-                    Missing Items
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    {unavailableItems.filter((item) => item.reason === "Missing").length}
-                  </div>
-                  <p className="text-xs text-purple-700 dark:text-purple-300">
-                    Total:{" "}
-                    {unavailableItems
-                      .filter((item) => item.reason === "Missing")
-                      .reduce((sum, item) => sum + item.quantity, 0)}
-                  </p>
-                </CardContent>
-              </Card>
-
+            <div id="report-stats-container" ref={statsRef} className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <Card className="border-purple-200 dark:border-purple-800">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-purple-900 dark:text-purple-100">
@@ -574,14 +629,10 @@ export function ReportsView() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                    {unavailableItems.filter((item) => item.reason === "Damaged").length}
+                  {unavailableItems
+                  .filter((item) => item.reason === "reportedDamaged")
+                  .reduce((total, item) => total + (item.quantity || 0), 0)}
                   </div>
-                  <p className="text-xs text-purple-700 dark:text-purple-300">
-                    Total:{" "}
-                    {unavailableItems
-                      .filter((item) => item.reason === "Damaged")
-                      .reduce((sum, item) => sum + item.quantity, 0)}
-                  </p>
                 </CardContent>
               </Card>
 
@@ -593,14 +644,10 @@ export function ReportsView() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                    {unavailableItems.filter((item) => item.reason === "reportedStolen").length}
+                  {unavailableItems
+                  .filter((item) => item.reason === "reportedStolen")
+                  .reduce((total, item) => total + (item.quantity || 0), 0)}
                   </div>
-                  <p className="text-xs text-purple-700 dark:text-purple-300">
-                    Total:{" "}
-                    {unavailableItems
-                      .filter((item) => item.reason === "reportedStolen")
-                      .reduce((sum, item) => sum + item.quantity, 0)}
-                  </p>
                 </CardContent>
               </Card>
 
@@ -610,20 +657,28 @@ export function ReportsView() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                    {unavailableItems.filter((item) => item.reason === "reportedLost").length}
+                  {unavailableItems
+                  .filter((item) => item.reason === "reportedLost")
+                  .reduce((total, item) => total + (item.quantity || 0), 0)}
                   </div>
-                  <p className="text-xs text-purple-700 dark:text-purple-300">
-                    Total:{" "}
-                    {unavailableItems
-                      .filter((item) => item.reason === "reportedLost")
-                      .reduce((sum, item) => sum + item.quantity, 0)}
-                  </p>
                 </CardContent>
               </Card>
             </div>
           </CardContent>
         </Card>
       )}
+
+      {/* Export Dialog */}
+      <ExportDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        reportType={reportType}
+        timeframe={timeframe}
+        usageData={usageData}
+        popularItems={popularItems}
+        unavailableItems={unavailableItems}
+        lowStockItems={lowStockItems}
+      />
     </div>
   )
 }
