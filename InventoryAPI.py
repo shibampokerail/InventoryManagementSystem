@@ -165,7 +165,6 @@ if __name__=="__main__":
     print(api.update_inventory_item("67ff54445e6693be0362532a",{"name":"Toilet Paper"})) # also you can get the item id from the previous call
     # print(api.get_inventory_usage_logs())
     print(api.get_inventory_items())
-    # print(api.update_user({ 'name': 'Rahul Chaudhari', 'role': 'admin', 'slackId': 'adfabac', 'email': 'oe51384@truman.edu'}))
     # print(api.get_users())
     print(api.get_notifications())
 
