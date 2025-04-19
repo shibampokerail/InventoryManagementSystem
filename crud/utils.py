@@ -12,11 +12,21 @@ from flask_socketio import SocketIO
 import requests
 
 # Load environment variables
+# Load environment variables
 load_dotenv()
-MONGO_URI = os.getenv('MONGO_URI')
+
+
 DB_NAME = os.getenv('DB_NAME')
+user = os.getenv('USERNAME')
+password = os.getenv('PASSWORD')
+host = os.getenv('HOST')
+port = os.getenv('PORT')
+MONGO_URI = f"mongodb://{user}:{password}@{host}:{port}/{DB_NAME}?authSource={DB_NAME}"
+
+print(f"MongoDB URI: {MONGO_URI}")
 SLACKBOT_API_KEY = os.getenv("SLACKBOT_API_KEY")
 SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
+
 # MongoDB Connection
 client = None
 db = None
