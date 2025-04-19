@@ -3,15 +3,15 @@
 
 To make this code work, you need to have a .env file in your flask-mongodb-api folder. the env is suppose to have the following arguments:
 
-SECRET_KEY=
-SLACKBOT_API_KEY=
-SLACK_WEBHOOK_URL =
+- SECRET_KEY=
+- SLACKBOT_API_KEY=
+- SLACK_WEBHOOK_URL =
 
-USERNAME = 
-PASSWORD = 
-HOST = 
-PORT = 
-DB_NAME = 
+- USERNAME = 
+- PASSWORD = 
+- HOST = 
+- PORT = 
+- DB_NAME = 
 
 After this you have to create a virtual envirnment to install all dependicies.
 python3 -m venv pathto/myvenv
