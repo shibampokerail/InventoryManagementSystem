@@ -1,8 +1,6 @@
 import requests
 import json
 
-
-
 class InventoryAPIHandler:
     def __init__(self, base_url, token):
         self.base_url = base_url
@@ -16,6 +14,12 @@ class InventoryAPIHandler:
         """Create a new user (Admin only)"""
         url = f"{self.base_url}/api/users"
         return self._post(url, user_data)
+
+    def update_user(self, user_data):
+        """Updates user data"""
+        url = f"{self.base_url}/api/users"
+        return self._post(url, user_data)
+
 
     def get_users(self):
         """Create a new user (Admin only)"""
@@ -41,7 +45,7 @@ class InventoryAPIHandler:
 
     def get_inventory_item(self, name="default", id=""):
         """Get all inventory items - slack"""
-        if name=="default":
+        if name!="default":
             url = f"{self.base_url}/api/inventory-items?name="+name
         else:
             url = f"{self.base_url}/api/inventory-items/?id="+id
@@ -151,8 +155,17 @@ class InventoryAPIHandler:
             return {"error": str(err), "status_code": response.status_code, "response": response.text}
 
 if __name__=="__main__":
+
     api = InventoryAPIHandler(
-        base_url="",
-        token=""
+        base_url="<BASEURL>",
+        token="<TOKEN>"
     )
-    print(api.get_inventory_usage_logs())
+    # print(api.get_inventory_item(name="Staplerssad"))
+    #
+    print(api.update_inventory_item("67ff54445e6693be0362532a",{"name":"Toilet Paper"})) # also you can get the item id from the previous call
+    # print(api.get_inventory_usage_logs())
+    print(api.get_inventory_items())
+    # print(api.update_user({ 'name': 'Rahul Chaudhari', 'role': 'admin', 'slackId': 'adfabac', 'email': 'oe51384@truman.edu'}))
+    # print(api.get_users())
+    print(api.get_notifications())
+
