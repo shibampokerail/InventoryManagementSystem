@@ -1,91 +1,16 @@
 import requests
 import json
 import re
-import os
 from datetime import datetime, timedelta
 
+from AI import GeminiHandler
 from slack_sdk import WebClient
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 
-# Import Gemini API
-from google import genai
-from google.genai import types
 
-
-# InventoryAPIHandler Class for Inventory API interactions
-class InventoryAPIHandler:
-    def __init__(self, base_url, token):
-        self.base_url = base_url
-        self.headers = {
-            "X-API-Key": f"{token}",
-            "Content-Type": "application/json"
-        }
-
-    def get_inventory_items(self):
-        """Get all inventory items"""
-        url = f"{self.base_url}/api/inventory-items"
-        return self._get(url)
-
-    def get_inventory_item(self, name):
-        """Get inventory item by name"""
-        url = f"{self.base_url}/api/inventory-items?name={name}"
-        return self._get(url)
-
-    def update_inventory_item(self, item_id, update_data):
-        """Update an inventory item"""
-        url = f"{self.base_url}/api/inventory-items/{item_id}"
-        return self._put(url, update_data)
-
-    def get_notifications(self):
-        """Get notifications"""
-        url = f"{self.base_url}/api/notifications"
-        return self._get(url)
-
-    def get_inventory_usage_logs(self):
-        """Get inventory usage logs"""
-        url = f"{self.base_url}/api/inventoryusage"
-        return self._get(url)
-
-    def get_orders(self):
-        """Get all orders"""
-        url = f"{self.base_url}/api/orders"
-        return self._get(url)
-
-    def record_inventory_usage(self, usage_data):
-        """Record inventory usage"""
-        url = f"{self.base_url}/api/inventoryusage"
-        return self._post(url, usage_data)
-
-    # Internal helper methods for API requests
-    def _post(self, url, data):
-        response = requests.post(url, headers=self.headers, data=json.dumps(data))
-        return self._handle_response(response)
-
-    def _get(self, url):
-        response = requests.get(url, headers=self.headers)
-        return self._handle_response(response)
-
-    def _put(self, url, data):
-        response = requests.put(url, headers=self.headers, data=json.dumps(data))
-        return self._handle_response(response)
-
-    def _delete(self, url):
-        response = requests.delete(url, headers=self.headers)
-        return self._handle_response(response)
-
-    def _handle_response(self, response):
-        try:
-            response.raise_for_status()
-            if response.text:
-                return response.json()
-            else:
-                return {"status": "success"}
-        except requests.exceptions.HTTPError as err:
-            return {"error": str(err), "status_code": response.status_code, "response": response.text}
-
-
-# BotWebAPI Class for Web API interactions
+from InventoryAPI import InventoryAPIHandler
+# C08KG5C89AQ
 class BotWebAPI:
     def __init__(self, bot_token):
         self.bot_token = bot_token
@@ -95,7 +20,7 @@ class BotWebAPI:
         }
         self.client = WebClient(token=bot_token)
 
-    def post_message(self, message="Hello! This is a test...", channel_id='C08KG5C89AQ'):
+    def post_message(self, message="Hello! This is a test...", channel_id='sdfsdf'):
         url = 'https://slack.com/api/chat.postMessage'
         payload = {'channel': channel_id, 'text': message}
         response = requests.post(url, headers=self.headers, data=json.dumps(payload))
@@ -136,240 +61,6 @@ class BotWebAPI:
                 print(f"Error setting reminder: {response['error']}")
         except Exception as e:
             print(f"Error calling Slack API: {str(e)}")
-
-
-# GeminiHandler Class for AI-powered responses
-class GeminiHandler:
-    def __init__(self, api_key, inventory_api_handler):
-        self.client = genai.Client(api_key=api_key)
-        self.inventory_api_handler = inventory_api_handler
-
-        # Function declarations for Gemini
-        self.function_declarations = [
-            {
-                "name": "get_inventory_items",
-                "description": "Gets all inventory items",
-                "parameters": {
-                    "type": "object",
-                    "properties": {},
-                    "required": []
-                }
-            },
-            {
-                "name": "get_inventory_item",
-                "description": "Gets a specific inventory item by name",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "name": {
-                            "type": "string",
-                            "description": "The name of the inventory item to retrieve",
-                        }
-                    },
-                    "required": ["name"]
-                }
-            },
-            {
-                "name": "update_inventory_usage",
-                "description": "Records usage of an inventory item (e.g., when items are used or taken)",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "item_name": {
-                            "type": "string",
-                            "description": "The name of the inventory item used"
-                        },
-                        "quantity": {
-                            "type": "integer",
-                            "description": "The quantity used"
-                        },
-                        "user_id": {
-                            "type": "string",
-                            "description": "ID of the user who used the item"
-                        }
-                    },
-                    "required": ["item_name", "quantity", "user_id"]
-                }
-            },
-            {
-                "name": "restock_inventory",
-                "description": "Records restocking of an inventory item",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "item_name": {
-                            "type": "string",
-                            "description": "The name of the inventory item restocked"
-                        },
-                        "quantity": {
-                            "type": "integer",
-                            "description": "The quantity added to inventory"
-                        },
-                        "user_id": {
-                            "type": "string",
-                            "description": "ID of the user who restocked the item"
-                        }
-                    },
-                    "required": ["item_name", "quantity", "user_id"]
-                }
-            },
-            {
-                "name": "get_notifications",
-                "description": "Gets system notifications",
-                "parameters": {
-                    "type": "object",
-                    "properties": {},
-                    "required": []
-                }
-            },
-            {
-                "name": "get_inventory_usage_logs",
-                "description": "Gets inventory usage logs",
-                "parameters": {
-                    "type": "object",
-                    "properties": {},
-                    "required": []
-                }
-            },
-            {
-                "name": "get_orders",
-                "description": "Gets all orders",
-                "parameters": {
-                    "type": "object",
-                    "properties": {},
-                    "required": []
-                }
-            }
-        ]
-
-    def process_message(self, message_text, user_id):
-        """Process a natural language message using Gemini"""
-        # Configure the client and tools
-        tools = types.Tool(function_declarations=self.function_declarations)
-        config = types.GenerateContentConfig(tools=[tools])
-
-        try:
-            # Send request to Gemini with function declarations
-            response = self.client.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=message_text,
-                config=config,
-            )
-
-            # Check for a function call
-            if response.candidates[0].content.parts[0].function_call:
-                function_call = response.candidates[0].content.parts[0].function_call
-                function_name = function_call.name
-                function_args = function_call.args
-
-                # Execute the appropriate function based on the function call
-                result = self._execute_function(function_name, function_args, user_id)
-
-                # Generate a user-friendly response based on the function result
-                follow_up_response = self.client.models.generate_content(
-                    model="gemini-2.0-flash",
-                    contents=[
-                        "The user asked: " + message_text,
-                        "Function called: " + function_name,
-                        "Function result: " + json.dumps(result),
-                        "Please provide a helpful, conversational response based on this information."
-                    ]
-                )
-
-                return follow_up_response.text
-            else:
-                # If no function call was needed, return the direct response
-                return response.text
-
-        except Exception as e:
-            print(f"Error processing with Gemini: {str(e)}")
-            return f"I'm sorry, I encountered an error while processing your request. Please try again or use a command directly."
-
-    def _execute_function(self, function_name, args, user_id):
-        """Execute the appropriate function based on the function call from Gemini"""
-        if function_name == "get_inventory_items":
-            return self.inventory_api_handler.get_inventory_items()
-
-        elif function_name == "get_inventory_item":
-            return self.inventory_api_handler.get_inventory_item(args.get("name", ""))
-
-        elif function_name == "update_inventory_usage":
-            item_name = args.get("item_name", "")
-            quantity = args.get("quantity", 0)
-
-            # Get the item ID first
-            api_item = self.inventory_api_handler.get_inventory_item(item_name)
-
-            if api_item and not "error" in api_item:
-                item_data = api_item[0] if isinstance(api_item, list) else api_item
-                item_id = item_data.get('id')
-                current_quantity = item_data.get('quantity', 0)
-                min_stock = item_data.get('minStockLevel', 0)
-
-                new_quantity = max(0, current_quantity - quantity)
-                update_data = {"quantity": new_quantity}
-
-                # Record usage in API
-                usage_data = {
-                    "itemId": item_id,
-                    "quantity": quantity,
-                    "userId": user_id,
-                    "timestamp": datetime.now().isoformat()
-                }
-                self.inventory_api_handler.record_inventory_usage(usage_data)
-
-                # Update the item in API
-                self.inventory_api_handler.update_inventory_item(item_id, update_data)
-
-                return {
-                    "status": "success",
-                    "item": item_name,
-                    "quantity_used": quantity,
-                    "remaining": new_quantity,
-                    "low_stock": new_quantity <= min_stock,
-                    "out_of_stock": new_quantity <= 0
-                }
-            else:
-                return {"error": f"Item '{item_name}' not found in inventory"}
-
-        elif function_name == "restock_inventory":
-            item_name = args.get("item_name", "")
-            quantity = args.get("quantity", 0)
-
-            # Get the item ID first
-            api_item = self.inventory_api_handler.get_inventory_item(item_name)
-
-            if api_item and not "error" in api_item:
-                item_data = api_item[0] if isinstance(api_item, list) else api_item
-                item_id = item_data.get('id')
-                current_quantity = item_data.get('quantity', 0)
-
-                new_quantity = current_quantity + quantity
-                update_data = {"quantity": new_quantity}
-
-                # Update the item in API
-                self.inventory_api_handler.update_inventory_item(item_id, update_data)
-
-                return {
-                    "status": "success",
-                    "item": item_name,
-                    "quantity_added": quantity,
-                    "new_total": new_quantity
-                }
-            else:
-                return {"error": f"Item '{item_name}' not found in inventory"}
-
-        elif function_name == "get_notifications":
-            return self.inventory_api_handler.get_notifications()
-
-        elif function_name == "get_inventory_usage_logs":
-            return self.inventory_api_handler.get_inventory_usage_logs()
-
-        elif function_name == "get_orders":
-            return self.inventory_api_handler.get_orders()
-
-        else:
-            return {"error": f"Unknown function: {function_name}"}
 
 
 # BotBolt Class for Slack Bot Operations
@@ -416,7 +107,13 @@ class BotBolt:
                 # Process commands - AI mode vs. regular mode
                 if self.ai_mode_enabled and not text.startswith("!"):
                     # Process with Gemini AI
-                    response = self.gemini_handler.process_message(text, user_id)
+                    try:
+                        user_info = self.app.client.users_info(user=user_id)
+                        display_name = user_info['user']['profile'].get('display_name') or user_info['user'][
+                            'real_name']
+                    except Exception as e:
+                        display_name = "there"
+                    response = self.gemini_handler.process_message(text, display_name)
                     say(response)
                 else:
                     # Process using traditional command parsing
@@ -674,42 +371,66 @@ class BotBolt:
             return word_to_num.get(num_str.lower(), 0)
 
     def update_inventory(self, say, channel, item, quantity, user_id):
-        # Check if item exists in the API first
-        api_item = self.api_handler.get_inventory_item(item)
+        """Update inventory when items are used/taken"""
+        # Get user's display name from Slack
+        user_name = self.get_user_name_from_slack(user_id)
 
-        if api_item and not "error" in api_item:
+        # Get the database user ID
+        db_user_id = self.get_user_id_by_name(user_name, user_id)
+
+        # Check if item exists in the API first
+        api_item = self.api_handler.get_inventory_item(name=item)
+
+        if api_item and not isinstance(api_item, dict) and "error" not in api_item and len(api_item) > 0:
             # Item exists in API, update it there
             try:
-                item_data = api_item[0] if isinstance(api_item, list) else api_item
-                item_id = item_data.get('id')
+                item_data = api_item[0]  # Get the first item from the list
+                item_id = item_data.get('_id')  # Use _id instead of id
                 current_quantity = item_data.get('quantity', 0)
-                min_stock = item_data.get('minStockLevel', 0)
+                min_stock = item_data.get('minQuantity', 0)  # Use minQuantity instead of minStockLevel
+                category = item_data.get('category', '')  # Get the item category
 
+                # Check if there's enough inventory
+                if current_quantity < quantity:
+                    say(f"Not enough {item} in inventory. Only {current_quantity} available.")
+                    return
+
+                # Calculate new quantity
                 new_quantity = max(0, current_quantity - quantity)
-                update_data = {"quantity": new_quantity}
 
-                # Record usage in API
+                # Update the item in API
+                update_result = self.api_handler.update_inventory_item(item_id, {"quantity": new_quantity})
+
+                # Check if update was successful
+                if isinstance(update_result, dict) and "error" in update_result:
+                    say(f"Error updating inventory: {update_result.get('error')}")
+                    return
+
+                # Set action based on category
+                action = "daily-usages"  # Default action
+                if category in ["Office Equipement", "Furniture"]:
+                    action = "reportedCheckedOut"
+
+                # Record usage in API with the database user ID
                 usage_data = {
                     "itemId": item_id,
                     "quantity": quantity,
-                    "userId": user_id,
-                    "timestamp": datetime.now().isoformat()
+                    "userId": db_user_id,  # Use the database user ID here
+                    "timestamp": datetime.now().isoformat(),
+                    "action": action
                 }
                 self.api_handler.record_inventory_usage(usage_data)
-
-                # Update the item in API
-                self.api_handler.update_inventory_item(item_id, update_data)
 
                 # Notify based on stock level
                 if new_quantity <= 0:
                     say(f"️ <@{self.manager_id}>, we are out of {item}!")
                 elif new_quantity <= min_stock:
-                    say(f"{quantity} {item} used. {new_quantity} left. Notifying manager...")
+                    say(f"{quantity} {item} used by {user_name}. {new_quantity} left. Notifying manager...")
                     say(f"️ <@{self.manager_id}>, please restock {item} soon!")
                 else:
-                    say(f"{quantity} {item} used. {new_quantity} left.")
+                    say(f"{quantity} {item} used by {user_name}. {new_quantity} left.")
 
-                self.log_action(user_id, f"Used {quantity} {item}. {new_quantity} left.")
+                self.log_action(user_id, f"Used {quantity} {item}. {new_quantity} left. Action: {action}")
 
             except Exception as e:
                 print(f"Error updating via API: {str(e)}")
@@ -718,6 +439,62 @@ class BotBolt:
         else:
             # Fall back to local inventory if not in API
             self._update_local_inventory(say, item, quantity, user_id)
+
+    def refill_inventory(self, say, channel, item, quantity, user_id):
+        """Update inventory when items are restocked"""
+        # Get user's display name from Slack
+        user_name = self.get_user_name_from_slack(user_id)
+
+        # Get the database user ID
+        db_user_id = self.get_user_id_by_name(user_name, user_id)
+
+        # Check if item exists in the API first
+        api_item = self.api_handler.get_inventory_item(name=item)
+
+        if api_item and not isinstance(api_item, dict) and "error" not in api_item and len(api_item) > 0:
+            # Item exists in API, update it there
+            try:
+                item_data = api_item[0]  # Get the first item from the list
+                item_id = item_data.get('_id')  # Use _id instead of id
+                current_quantity = item_data.get('quantity', 0)
+                category = item_data.get('category', '')  # Get the item category
+
+                # Calculate new quantity
+                new_quantity = current_quantity + quantity
+
+                # Update the item in API
+                update_result = self.api_handler.update_inventory_item(item_id, {"quantity": new_quantity})
+
+                # Check if update was successful
+                if isinstance(update_result, dict) and "error" in update_result:
+                    say(f"Error updating inventory: {update_result.get('error')}")
+                    return
+
+                # Only record usage for Office Equipment and Furniture
+                if category in ["Office Equipement", "Furniture"]:
+                    # Record usage with "reportedReturned" action
+                    usage_data = {
+                        "itemId": item_id,
+                        "quantity": quantity,
+                        "userId": db_user_id,
+                        "timestamp": datetime.now().isoformat(),
+                        "action": "reportedReturned"
+                    }
+                    self.api_handler.record_inventory_usage(usage_data)
+                    say(f"{quantity} {item} returned by {user_name}. {new_quantity} now available.")
+                else:
+                    # For Supplies, don't record usage
+                    say(f"{quantity} {item} restocked by {user_name}. {new_quantity} now available.")
+
+                self.log_action(user_id, f"Restocked {quantity} {item}. Now {new_quantity} available.")
+
+            except Exception as e:
+                print(f"Error updating via API: {str(e)}")
+                # Fall back to local inventory
+                self._refill_local_inventory(say, item, quantity, user_id)
+        else:
+            # Fall back to local inventory if not in API
+            self._refill_local_inventory(say, item, quantity, user_id)
 
     def _update_local_inventory(self, say, item, quantity, user_id):
         """Legacy method to update local inventory (fallback)"""
@@ -735,29 +512,6 @@ class BotBolt:
             self.log_action(user_id, f"Used {quantity} {item}. {remaining} left.")
         else:
             say(f"Item '{item}' not found in inventory!")
-
-    def refill_inventory(self, say, channel, item, quantity, user_id):
-        # Check if item exists in the API first
-        api_item = self.api_handler.get_inventory_item(item)
-
-        if api_item and not "error" in api_item:
-            # Item exists in API, update it there
-            try:
-                item_data = api_item[0] if isinstance(api_item, list) else api_item
-                item_id = item_data.get('id')
-                current_quantity = item_data.get('quantity', 0)
-
-                new_quantity = current_quantity + quantity
-                update_data = {"quantity": new_quantity}
-
-                # Update the item in API
-                self.api_handler.update_inventory_item(item_id, update_data)
-
-                say(f"{quantity} {item} restocked. {new_quantity} now available.")
-                self.log_action(user_id, f"Restocked {quantity} {item}. Now {new_quantity} available.")
-
-            except Exception as e:
-                print(f"Error updating via API: {str(e)}")
 
 
     def get_or_create_logs_channel(self, channel_name):
@@ -803,7 +557,6 @@ class BotBolt:
         if match:
             item = match.group(1).strip()
 
-            # Try API first
             api_item = self.api_handler.get_inventory_item(item)
             if api_item and not "error" in api_item:
                 item_data = api_item[0] if isinstance(api_item, list) else api_item
@@ -855,42 +608,66 @@ class BotBolt:
                 text=f"<@{covering_user}> confirmed ✅ covering shift for <@{original_user}>."
             )
         else:
-            self.client.chat_postMessage(
-                channel=self.logs_channel,
-                text=f"<@{covering_user}> reacted to an unknown shift message."
-            )
+            pass
+            # self.client.chat_postMessage(
+            #     channel=self.logs_channel,
+            #     text=f"<@{covering_user}> reacted to an unknown shift message."
+            # )
 
-if __name__ == "__main__":
+    def get_user_name_from_slack(self, user_id):
+        """
+        Get user's real name from Slack using the WebClient
 
-    SLACK_BOT_TOKEN = ""
-    SLACK_APP_TOKEN = ""
+        Args:
+            user_id: The Slack user ID
 
-    API_BASE_URL = ""
+        Returns:
+            The user's real name or "Unknown User" if not found
+        """
+        try:
+            # Use the WebClient's users_info method
+            user_info = self.client.users_info(user=user_id)
+            if user_info['ok']:
+                return user_info['user']['profile']['real_name']
+            return "Unknown User"
+        except Exception as e:
+            print(f"Error getting user info from Slack: {str(e)}")
+            return "Unknown User"
 
-    API_TOKEN = ""
+    def get_user_id_by_name(self, user_name, slack_user_id):
+        """
+        Find a user in the database by name, or return the default U&I Staff user ID
 
-    GEMINI_API_KEY = ""
+        Args:
+            user_name: The name of the user from Slack
+            slack_user_id: The Slack user ID as fallback
 
-    # Check for required environment variables
-    if not SLACK_BOT_TOKEN or not SLACK_APP_TOKEN:
-        print("Error: SLACK_BOT_TOKEN and SLACK_APP_TOKEN environment variables are required")
-        exit(1)
+        Returns:
+            The database user ID to use for inventory records
+        """
+        try:
+            # Get all users from the API
+            users = self.api_handler.get_users()
 
-    if not API_BASE_URL or not API_TOKEN:
-        print("Error: API_BASE_URL and API_TOKEN environment variables are required")
-        exit(1)
+            if not users or isinstance(users, dict) and "error" in users:
+                print(f"Error getting users: {users.get('error') if isinstance(users, dict) else 'No users found'}")
+                # Return the slack_user_id as fallback
+                return slack_user_id
 
-    print("Starting Inventory Bot...")
-    print(f"AI Mode: {'Enabled' if GEMINI_API_KEY else 'Disabled'}")
+            # Try to find the user by name (case insensitive)
+            for user in users:
+                if user.get('name', '').lower() == user_name.lower():
+                    return user.get('_id')
 
-    # Initialize and start the bot
-    bot = BotBolt(
-        bot_token=SLACK_BOT_TOKEN,
-        app_token=SLACK_APP_TOKEN,
-        api_base_url=API_BASE_URL,
-        api_token=API_TOKEN,
-        gemini_api_key=GEMINI_API_KEY  # This will be None if not set
-    )
+            # If user not found by name, find the default U&I Staff user
+            for user in users:
+                if user.get('name') == 'U&I Staff' and user.get('role') == 'user':
+                    return user.get('_id')
 
-    # Start the bot listener
-    bot.listener()
+            # If no default user found, return the slack_user_id as fallback
+            return slack_user_id
+
+        except Exception as e:
+            print(f"Error looking up user: {str(e)}")
+            return slack_user_id
+
