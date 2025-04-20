@@ -260,7 +260,11 @@ class GeminiHandler:
                         "userId": db_user_id,
                         "action": action
                     }
+
                     self.inventory_api_handler.record_inventory_usage(usage_data)
+
+                    if new_quantity <= min_stock:
+                        self.inventory_api_handler.create_notification({"message": "We are low on "+item_name+". We have "+str(new_quantity)+" left."  , "type":"LOW STOCK"})
 
                     results.append({
                         "status": "success",
