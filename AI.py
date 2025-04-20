@@ -270,10 +270,7 @@ class GeminiHandler:
                 new_quantity = current_quantity + quantity
                 update_data = {"quantity": new_quantity}
 
-                # Update the item in API
-                # update_result = self.inventory_api_handler.update_inventory_item(item_id, update_data)
-                # if isinstance(update_result, dict) and "error" in update_result:
-                #     return {"error": f"Error updating inventory: {update_result.get('error')}"}
+
 
                 # Only record usage for Office Equipment and Furniture
                 if category in ["Office Equipement", "Furniture"]:
@@ -292,11 +289,16 @@ class GeminiHandler:
                         "item": item_name,
                         "quantity_added": quantity,
                         "user": user_name,
-                        "new_total": current_quantity+quantity+quantity,
+                        "new_total": current_quantity+quantity,
                         "action": "reportedReturned"  # Include the action in the response
                     }
                 else:
                     # For Supplies, don't record usage
+                    # Update the item in API
+                    update_result = self.inventory_api_handler.update_inventory_item(item_id, update_data)
+                    if isinstance(update_result, dict) and "error" in update_result:
+                        return {"error": f"Error updating inventory: {update_result.get('error')}"}
+
                     return {
                         "status": "success",
                         "item": item_name,
