@@ -55,7 +55,7 @@ class InventoryAPIHandler:
     def update_inventory_item(self, item_id, update_data):
         """Update an inventory item - slack"""
         url = f"{self.base_url}/backendapi/inventory-items/{item_id}"
-        return self._post(url, update_data)
+        return self._put(url, update_data)
 
     def delete_inventory_item(self, item_id):
         """Delete an inventory item"""
@@ -185,7 +185,7 @@ if __name__=="__main__":
     )
     # print(api.get_inventory_item(name="Staplerssad"))
 
-    # print(api.update_inventory_item("67ff54445e6693be0362532a",{"name":"Toilet Paper Rolls"}))
+    print(api.update_inventory_item("67ff54445e6693be0362532a",{"quantity":16}))
     # print(api.record_inventory_usage({'itemId': '68008513f2346f641ba65357', 'quantity': 3, 'userId': '68009721e067ab73e0b05a56', 'action': 'reportedCheckedOut'}))
     # print(api.get_inventory_usage_logs())
     # print(api.get_inventory_items())
