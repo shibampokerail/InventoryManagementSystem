@@ -232,7 +232,6 @@ class GeminiHandler:
                     "itemId": item_id,
                     "quantity": quantity,
                     "userId": db_user_id,  # Use the database user ID here
-                    "timestamp": datetime.now().isoformat(),
                     "action": action
                 }
                 print(self.inventory_api_handler.record_inventory_usage(usage_data))
@@ -273,7 +272,6 @@ class GeminiHandler:
 
                 # Update the item in API
                 # update_result = self.inventory_api_handler.update_inventory_item(item_id, update_data)
-                #
                 # if isinstance(update_result, dict) and "error" in update_result:
                 #     return {"error": f"Error updating inventory: {update_result.get('error')}"}
 
@@ -284,7 +282,6 @@ class GeminiHandler:
                         "itemId": item_id,
                         "quantity": quantity,
                         "userId": db_user_id,
-                        "timestamp": datetime.now().isoformat(),
                         "action": "reportedReturned"
                     }
                     print(self.inventory_api_handler.record_inventory_usage(usage_data))

@@ -65,11 +65,17 @@ class BotWebAPI:
 
 # BotBolt Class for Slack Bot Operations
 class BotBolt:
-    def __init__(self, bot_token, app_token, api_base_url, api_token, gemini_api_key=None):
-        self.app = App(token=bot_token)
-        self.app_token = app_token
-        self.bot_token = bot_token
-        self.client = WebClient(token=bot_token)
+    def __init__(self, api_base_url, api_token, gemini_api_key=None):
+
+        try:
+            slack_config = InventoryAPIHandler(api_base_url, api_token).get_slack_config()
+        except Exception as e:
+            raise  Exception("Could not get Slack Config from Backend Server :", e)
+
+        self.app = App(token=slack_config["bot_token"])
+        self.app_token = slack_config["app_token"]
+        self.bot_token = slack_config["app_token"]
+        self.client = WebClient(token=slack_config["bot_token"])
         self.api_handler = InventoryAPIHandler(api_base_url, api_token)
 
         # AI mode flag
@@ -371,6 +377,7 @@ class BotBolt:
             return word_to_num.get(num_str.lower(), 0)
 
     def update_inventory(self, say, channel, item, quantity, user_id):
+        print("new_quantity")
         """Update inventory when items are used/taken"""
         # Get user's display name from Slack
         user_name = self.get_user_name_from_slack(user_id)
@@ -397,7 +404,7 @@ class BotBolt:
 
                 # Calculate new quantity
                 new_quantity = max(0, current_quantity - quantity)
-
+                print(new_quantity)
                 # Update the item in API
                 update_result = self.api_handler.update_inventory_item(item_id, {"quantity": new_quantity})
 
@@ -416,10 +423,10 @@ class BotBolt:
                     "itemId": item_id,
                     "quantity": quantity,
                     "userId": db_user_id,  # Use the database user ID here
-                    "timestamp": datetime.now().isoformat(),
                     "action": action
                 }
-                self.api_handler.record_inventory_usage(usage_data)
+                print("USAGEDATA",usage_data)
+                print(self.api_handler.record_inventory_usage(usage_data))
 
                 # Notify based on stock level
                 if new_quantity <= 0:
@@ -477,10 +484,10 @@ class BotBolt:
                         "itemId": item_id,
                         "quantity": quantity,
                         "userId": db_user_id,
-                        "timestamp": datetime.now().isoformat(),
                         "action": "reportedReturned"
                     }
-                    self.api_handler.record_inventory_usage(usage_data)
+                    print(usage_data)
+                    print(self.api_handler.record_inventory_usage(usage_data))
                     say(f"{quantity} {item} returned by {user_name}. {new_quantity} now available.")
                 else:
                     # For Supplies, don't record usage
