@@ -12,7 +12,6 @@ from flask_socketio import SocketIO
 import requests
 
 # Load environment variables
-# Load environment variables
 load_dotenv()
 
 
@@ -22,11 +21,9 @@ password = os.getenv('PASSWORD')
 host = os.getenv('HOST')
 port = os.getenv('PORT')
 MONGO_URI = f"mongodb://{user}:{password}@{host}:{port}/{DB_NAME}?authSource={DB_NAME}"
-
-print(f"MongoDB URI: {MONGO_URI}")
+# MONGO_URI ='mongodb://localhost:27017' for mongodb without authentication
+# print(f"MongoDB URI: {MONGO_URI}") to test everything is working
 SLACKBOT_API_KEY = os.getenv("SLACKBOT_API_KEY")
-SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
-
 # MongoDB Connection
 client = None
 db = None
@@ -57,6 +54,9 @@ def convert_to_json_serializable(obj):
 
 #sends message to slack when item has been updated.
 def send_slack_message(text):
+    db = connect_to_mongo()
+    slack = db.SlackManagement.find_one()
+    SLACK_WEBHOOK_URL = slack['webhook'] if slack else None
     payload = {"text": text}
     try:
         response = requests.post(SLACK_WEBHOOK_URL, json=payload)
@@ -69,7 +69,7 @@ def send_slack_message(text):
 def get_collections():
     db = connect_to_mongo()
     return {
-"users": db.Users,
+        "users": db.Users,
         "vendors": db.Vendors,
         "inventory_items": db.InventoryItems,
         "orders": db.Orders,
@@ -81,15 +81,30 @@ def get_collections():
     }
 retry_delay = 5
 max_delay = 60
-# Function to watch a specific collection and broadcast changes
+# In-memory set to track processed change IDs
+processed_changes = set()
+
 def watch_collection(collection_name, collection, socketio):
+    retry_delay = 5
+    max_delay = 60
     while True:
         try:
             print(f"Opening Change Stream for {collection_name}...")
             with collection.watch(full_document='updateLookup') as stream:
                 print(f"Change Stream opened for {collection_name}")
                 for change in stream:
+                    # Use change['_id'] as a unique identifier
+                    change_id = change['_id']['_data']
+                    if change_id in processed_changes:
+                        print(f"Skipping duplicate change {change_id} in {collection_name}")
+                        continue
+                    processed_changes.add(change_id)
                     print(f"Change detected in {collection_name}: {change}")
+                    if collection_name == "notifications":
+                        send_slack_message(f"New Alert: {change['fullDocument']['message']}")
+                    if collection_name == "orders":
+                        item = db.InventoryItems.find_one({"_id": ObjectId(change['fullDocument']['itemId'])})
+                        send_slack_message(f"Order have been {change['fullDocument']['status']} for item: {item['name']} with quantity: {change['fullDocument']['quantity']}")
                     operation = change["operationType"]
                     document_id = str(change["documentKey"]["_id"]) if "documentKey" in change else None
 
@@ -106,7 +121,7 @@ def watch_collection(collection_name, collection, socketio):
                             updated_doc["_id"] = str(updated_doc["_id"])
                         else:
                             print(f"No fullDocument in update change for {collection_name}, fetching manually...")
-                            updated_doc = collection.find_one({"_id": ObjectId(document_id)})                            
+                            updated_doc = collection.find_one({"_id": ObjectId(document_id)})
                         if updated_doc:
                             updated_doc["_id"] = str(updated_doc["_id"])
                         else:
@@ -117,20 +132,16 @@ def watch_collection(collection_name, collection, socketio):
                         print(f"Emitting update event for {collection_name}: {updated_doc}")
                         socketio.emit(f"{collection_name}_update", updated_doc, namespace="/realtime")
 
-                        # Send to Slack
-                        item_name = updated_doc.get("name") or updated_doc.get("item") or "an item"
-                        send_slack_message(f"*{collection_name.replace('_', ' ').title()}* was updated: `{item_name}` (ID: {document_id})")
-
-                    elif operation == "delete":                        
+                    elif operation == "delete":
                         print(f"Emitting delete event for {collection_name}: {document_id}")
                         socketio.emit(f"{collection_name}_delete", {"_id": document_id}, namespace="/realtime")
                     else:
                         print(f"Unhandled operation type {operation} in {collection_name}: {change}")
-                    retry_delay = 5  # Reset delay on success                    
+                    retry_delay = 5  # Reset delay on success
         except Exception as e:
-            print(f"Error watching {collection_name}: {e}. Retrying in 5 seconds...")
+            print(f"Error watching {collection_name}: {e}. Retrying in {retry_delay} seconds...")
             time.sleep(retry_delay)
-            retry_delay = min(retry_delay * 2, max_delay)            
+            retry_delay = min(retry_delay * 2, max_delay)       
 
 
 # Start watching all collections in separate threads
@@ -139,7 +150,7 @@ def start_watching_collections(socketio: SocketIO):
     for name, collection in collections.items():
         print(f"Starting to watch collection: {name}")
         socketio.start_background_task(watch_collection, name, collection, socketio)
-
+        #eventlet.spawn(watch_collection, name, collection, socketio)
 
 # NEW: Decorator to allow API key or JWT authentication
 def api_key_or_jwt_required():
