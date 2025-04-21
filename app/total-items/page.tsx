@@ -97,7 +97,7 @@ export default function TotalItemsPage() {
   const itemsWithStatus: DisplayItem[] = inventoryItems.map((item) => ({
     ...item,
     status:
-      item.quantity === 0 ? "Out of Stock" : item.quantity <= 10 ? "Low Stock" : "In Stock",
+      item.quantity === 0 ? "Out of Stock" : item.quantity <= item.minQuantity ? "Low Stock" : "In Stock",
   }));
 
   // Get unique categories
