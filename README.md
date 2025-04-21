@@ -2,7 +2,7 @@
 
 A responsive dashboard for U&I services at Truman State University
 for managing inventory, tracking reports, and monitoring recent activity. It is built with **Next.js**, **React**, and **Tailwind CSS**,
-and this project provides a modern and user-friendly interface for inventory management.
+and this project provide a modern and user-friendly interface for inventory management.
 
 ---
 
