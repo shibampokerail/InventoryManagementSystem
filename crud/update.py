@@ -64,10 +64,13 @@ def update_inventory_item(id):
         update_data['minQuantity'] = int(update_data['minQuantity'])
         if update_data['minQuantity'] < 0:
             return jsonify({'error': 'minQuantity must be non-negative'}), 400
-
+    
     # Add updated_at timestamp
     update_data['updated_at'] = datetime.utcnow()
-
+    if int(update_data['quantity']) > int(update_data['minQuantity']):
+        update_data['status'] = 'AVAILABLE'
+    else:
+        update_data['status'] = 'LOW STOCK'
     # Update the item in the database
     result = db.InventoryItems.update_one({'_id': ObjectId(id)}, {'$set': update_data})
     if result.matched_count == 0:
@@ -84,8 +87,8 @@ def update_inventory_item(id):
                 'recipient': 'general_channel',
                 'read': False
             }
+            # Insert notification into Notifications collection
             db.Notifications.insert_one(notification)
-
     return jsonify({'message': 'Inventory item updated successfully'}), 200
 
 # Update an Order
@@ -111,6 +114,13 @@ def update_order(id):
             db.InventoryItems.update_one(
                 {'_id': ObjectId(order['itemId'])},
                 {'$inc': {'quantity': order['quantity']}}
+            )
+        # Update the status after increase
+        inventory_item = db.InventoryItems.find_one({'_id': ObjectId(order['itemId'])})
+        if inventory_item and inventory_item['quantity'] > inventory_item['minQuantity']:
+            db.InventoryItems.update_one(
+                {'_id': ObjectId(order['itemId'])},
+                {'$set': {'status': 'AVAILABLE'}}
             )
     if result.matched_count == 0:
         return jsonify({'error': 'Order not found'}), 404

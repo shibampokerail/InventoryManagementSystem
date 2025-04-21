@@ -5,7 +5,6 @@ To make this code work, you need to have a .env file in your flask-mongodb-api f
 
 - SECRET_KEY=
 - SLACKBOT_API_KEY=
-- SLACK_WEBHOOK_URL =
 
 - USERNAME = 
 - PASSWORD = 

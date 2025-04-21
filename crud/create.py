@@ -3,7 +3,6 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from crud.utils import connect_to_mongo, require_role, api_key_or_jwt_required
 from bson.objectid import ObjectId
 from datetime import datetime
-
 # Create a User
 @require_role('admin')
 def create_user():
@@ -73,7 +72,8 @@ def create_inventory_item():
     # Validate quantity and minQuantity to be non-negative
     if new_item['quantity'] < 0 or new_item['minQuantity'] < 0:
         return jsonify({'error': 'Quantity and minQuantity must be non-negative'}), 400
-
+    if new_item['quantity'] < new_item['minQuantity']:
+        new_item['status'] = 'LOW STOCK'  # Set status to LOW if quantity is less than minQuantity
     # Insert into the database
     result = db.InventoryItems.insert_one(new_item)
     new_item['_id'] = str(result.inserted_id)
@@ -102,6 +102,13 @@ def create_order():
         if order['status'] == 'received':
             # Update inventory item quantity if order is received
             db.InventoryItems.update_one({'_id': order['itemId']}, {'$inc': {'quantity': order['quantity']}})
+                # Update the status after increase
+        inventory_item = db.InventoryItems.find_one({'_id': ObjectId(order['itemId'])})
+        if inventory_item and inventory_item['quantity'] > inventory_item['minQuantity']:
+            db.InventoryItems.update_one(
+                {'_id': ObjectId(order['itemId'])},
+                {'$set': {'status': 'AVAILABLE'}}
+            )
         return jsonify({'message': 'Order created', 'id': str(result.inserted_id)}), 201
     except Exception as e:
         return jsonify({'error': 'Failed to create order', 'details': str(e)}), 500
@@ -139,6 +146,7 @@ def create_notification():
         'type': data.get('type', 'info'),  # Default to 'info' if not provided
         'read': data.get('read', False),  # Default to False if not provided
     }
+    
     result = db.Notifications.insert_one(new_notification)
     new_notification['_id'] = str(result.inserted_id)
     return jsonify(new_notification), 201
@@ -215,11 +223,15 @@ def create_inventory_usage():
             new_quantity = current_quantity + quantity
 
         # Update the inventory item quantity
+        status = "AVAILABLE"
+        if new_quantity < item.get("minQuantity", 0):
+            status = "LOW STOCK"
         update_result = db.InventoryItems.update_one(
             {"_id": item_id},
             {"$set": {
                 "quantity": new_quantity,
-                "updated_at": datetime.utcnow()
+                "updated_at": datetime.utcnow(),
+                "status": status
             }}
         )
 
