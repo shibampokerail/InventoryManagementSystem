@@ -41,12 +41,12 @@ export function InventoryTable({ inventoryItems }: { inventoryItems: InventoryIt
               <TableCell>
               <Badge
                     variant={
-                      item.status === "AVAILABLE" ? "default" : item.status === "LOW_STOCK" ? "destructive" : "outline"
+                      item.status === "AVAILABLE" ? "default" : item.status === "LOW STOCK" ? "destructive" : "outline"
                     }
                     className={
                       item.status === "AVAILABLE"
                         ? "bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900 dark:text-green-100"
-                        : item.status === "LOW_STOCK"
+                        : item.status === "LOW STOCK"
                         ? "bg-red-100 text-red-800 hover:bg-red-100 dark:bg-red-900 dark:text-red-100"
                         : "bg-amber-100 text-amber-800 hover:bg-amber-100 dark:bg-amber-900 dark:text-amber-100"
                     }
