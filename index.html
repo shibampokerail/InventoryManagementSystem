@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>U&I Inventory Slackbot Manual</title>
+  <style>
+    :root {
+      --primary: #1a237e;
+      --secondary: #1565c0;
+      --accent: #2196f3;
+      --background: #f4f6f8;
+      --text: #2e3c4e;
+      --code-bg: #e0e7ff;
+      --warning-bg: #fff3cd;
+      --warning-border: #ffc107;
+      --example-bg: #e3f2fd;
+      --example-border: #2196f3;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--background);
+      color: var(--text);
+      line-height: 1.6;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+    
+    .container {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    
+    header {
+      padding: 2rem 0;
+      text-align: center;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .main-content {
+      display: flex;
+      flex: 1;
+      padding: 2rem 0;
+    }
+    
+    nav {
+      width: 280px;
+      position: sticky;
+      top: 20px;
+      align-self: flex-start;
+      padding-right: 2rem;
+    }
+    
+    .nav-list {
+      list-style: none;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    
+    .nav-item {
+      border-bottom: 1px solid #eee;
+    }
+    
+    .nav-item:last-child {
+      border-bottom: none;
+    }
+    
+    .nav-link {
+      display: block;
+      padding: 1rem;
+      color: var(--text);
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+    
+    .nav-link:hover {
+      background-color: #f0f4f8;
+      color: var(--secondary);
+    }
+    
+    .nav-link.active {
+      border-left: 4px solid var(--accent);
+      background-color: #f0f4f8;
+      font-weight: 600;
+    }
+    
+    .content {
+      flex: 1;
+      padding-left: 2rem;
+      border-left: 1px solid #ddd;
+    }
+    
+    h1 {
+      color: var(--primary);
+      margin-bottom: 1.5rem;
+      font-size: 2.5rem;
+    }
+    
+    h2 {
+      color: var(--primary);
+      margin: 2rem 0 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid #e0e7ff;
+      font-size: 1.8rem;
+    }
+    
+    h3 {
+      color: var(--primary);
+      margin: 1.5rem 0 1rem;
+      font-size: 1.4rem;
+    }
+    
+    code, pre {
+      background: var(--code-bg);
+      padding: 0.4em 0.6em;
+      border-radius: 6px;
+      font-family: Consolas, monospace;
+      font-size: 0.9em;
+    }
+    
+    pre {
+      padding: 1rem;
+      margin: 1rem 0;
+      overflow-x: auto;
+    }
+    
+    .note {
+      background-color: var(--warning-bg);
+      border-left: 6px solid var(--warning-border);
+      padding: 1.2rem;
+      margin: 1.5rem 0;
+      border-radius: 6px;
+    }
+    
+    .example {
+      background-color: var(--example-bg);
+      border-left: 6px solid var(--example-border);
+      padding: 1.2rem;
+      margin: 1.5rem 0;
+      border-radius: 6px;
+    }
+    
+    ul {
+      padding-left: 1.5rem;
+      margin: 1rem 0;
+    }
+    
+    li {
+      margin: 0.5rem 0;
+    }
+    
+    a {
+      color: var(--secondary);
+      text-decoration: none;
+    }
+    
+    a:hover {
+      text-decoration: underline;
+    }
+    
+    .section {
+      margin-bottom: 3rem;
+      scroll-margin-top: 20px;
+    }
+    
+    .emoji-icon {
+      font-size: 1.2em;
+      margin-right: 0.3em;
+    }
+    
+    .back-to-top {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background-color: var(--primary);
+      color: white;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      opacity: 0.8;
+      transition: opacity 0.3s;
+    }
+    
+    .back-to-top:hover {
+      opacity: 1;
+      text-decoration: none;
+    }
+    
+    footer {
+      text-align: center;
+      padding: 2rem 0;
+      border-top: 1px solid #ddd;
+      margin-top: 2rem;
+      color: #666;
+      font-size: 0.9rem;
+    }
+    
+    @media (max-width: 768px) {
+      .main-content {
+        flex-direction: column;
+      }
+      
+      nav {
+        width: 100%;
+        position: relative;
+        padding-right: 0;
+        margin-bottom: 2rem;
+      }
+      
+      .content {
+        padding-left: 0;
+        border-left: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📦 U&I Inventory Slackbot – User Manual</h1>
+    </header>
+    
+    <div class="main-content">
+      <nav>
+        <ul class="nav-list">
+          <li class="nav-item"><a href="#important-note" class="nav-link">⚠️ Important Note</a></li>
+          <li class="nav-item"><a href="#example-not-work" class="nav-link">❌ What Doesn't Work</a></li>
+          <li class="nav-item"><a href="#what-you-can-ask" class="nav-link">💬 What You Can Ask</a></li>
+          <li class="nav-item"><a href="#check-inventory" class="nav-link">🔍 Check Inventory</a></li>
+          <li class="nav-item"><a href="#record-usage" class="nav-link">✏️ Record Usage</a></li>
+          <li class="nav-item"><a href="#restock-return" class="nav-link">✅ Restock/Return</a></li>
+          <li class="nav-item"><a href="#notifications" class="nav-link">🔔 Notifications</a></li>
+          <li class="nav-item"><a href="#history" class="nav-link">📜 Usage History</a></li>
+          <li class="nav-item"><a href="#orders" class="nav-link">📦 View Orders</a></li>
+          <li class="nav-item"><a href="#multilingual" class="nav-link">🌍 Multilingual Support</a></li>
+          <li class="nav-item"><a href="#example-conversations" class="nav-link">🗣️ Example Conversations</a></li>
+          <li class="nav-item"><a href="#installation" class="nav-link">📺 Installation</a></li>
+          <li class="nav-item"><a href="#troubleshooting" class="nav-link">🛠️ Troubleshooting</a></li>
+          <li class="nav-item"><a href="#user-attribution" class="nav-link">🧑 User Attribution</a></li>
+        </ul>
+      </nav>
+      
+      <div class="content">
+        <section id="important-note" class="section">
+          <div class="note">
+            <strong>Important:</strong> The bot <strong>does NOT remember previous messages</strong>. Each message is processed in isolation.
+          </div>
+        </section>
+        
+        <section id="example-not-work" class="section">
+          <h2><span class="emoji-icon">❌</span>Example of What <em>Doesn't</em> Work</h2>
+          <pre>You: How many tables are there?
+Bot: We have 5 tables left.
+You: I checked out 2 of those
+Bot: (won't understand "those")</pre>
+          <div class="example">
+            <strong>Better approach:</strong><br>
+            <strong>You:</strong> I checked out 2 Tables<br>
+            <strong>Bot:</strong> Bot will update the inventory.
+          </div>
+          <p><strong>Always repeat the item name</strong> in follow-up messages.</p>
+        </section>
+        
+        <section id="what-you-can-ask" class="section">
+          <h2><span class="emoji-icon">💬</span>What You Can Ask</h2>
+          <p>Talk naturally — even in other languages!</p>
+        </section>
+        
+        <section id="check-inventory" class="section">
+          <h3><span class="emoji-icon">🔍</span>Check Inventory</h3>
+          <ul>
+            <li>"How many chairs are left?"</li>
+            <li>"Do we have any black markers?"</li>
+            <li>"Where are the monitors kept?"</li>
+          </ul>
+        </section>
+        
+        <section id="record-usage" class="section">
+          <h3><span class="emoji-icon">✏️</span>Record Usage or Checkout</h3>
+          <p>Include item name and quantity:</p>
+          <ul>
+            <li>"I used 3 whiteboards."</li>
+            <li>"Someone just checked out 2 projectors."</li>
+          </ul>
+        </section>
+        
+        <section id="restock-return" class="section">
+          <h3><span class="emoji-icon">✅</span>Restock or Return Items</h3>
+          <ul>
+            <li>"We restocked 10 paper towels."</li>
+            <li>"Returned 2 laptops."</li>
+          </ul>
+        </section>
+        
+        <section id="notifications" class="section">
+          <h3><span class="emoji-icon">🔔</span>Get System Notifications</h3>
+          <p>Ask for alerts:</p>
+          <ul>
+            <li>"Any low stock alerts?"</li>
+          </ul>
+          <p><em>Low stock notifications are also posted in the Inventory Notifications channel.</em></p>
+        </section>
+        
+        <section id="history" class="section">
+          <h3><span class="emoji-icon">📜</span>View Usage History</h3>
+          <ul>
+            <li>"Show inventory usage logs."</li>
+          </ul>
+        </section>
+        
+        <section id="orders" class="section">
+          <h3><span class="emoji-icon">📦</span>View Orders</h3>
+          <ul>
+            <li>"What are the current inventory orders?"</li>
+          </ul>
+        </section>
+        
+        <section id="multilingual" class="section">
+          <h2><span class="emoji-icon">🌍</span>Multilingual Support</h2>
+          <p>You can talk to the bot in different languages:</p>
+          <ul>
+            <li><strong>Spanish:</strong> "¿Cuántas sillas hay?"</li>
+            <li><strong>French:</strong> "Je viens de prendre 3 projecteurs."</li>
+            <li><strong>Hindi:</strong> "मैंने 5 कुर्सियाँ ली हैं।"</li>
+          </ul>
+        </section>
+        
+        <section id="example-conversations" class="section">
+          <h2><span class="emoji-icon">🗣️</span>Example Conversations</h2>
+          <div class="example">
+            <strong>You:</strong> How many projectors do we have?<br>
+            <strong>Bot:</strong> We currently have 3 projectors available.<br>
+            <strong>You:</strong> Someone checked out 2 projectors.<br>
+            <strong>Bot:</strong> Got it. I've recorded that. We now have 1 projector left. Heads up: we're running low!<br>
+            <strong>You:</strong> Restock 5 projectors.<br>
+            <strong>Bot:</strong> Done! I've added 5 projectors to inventory. You now have 6 in total.
+          </div>
+        </section>
+        
+        <section id="installation" class="section">
+          <h2><span class="emoji-icon">📺</span>Installing the Slackbot</h2>
+          <p>To install the Slackbot into a new channel, check out this video guide: <a href="https://youtu.be/5GA0614JpS0" target="_blank">https://youtu.be/5GA0614JpS0</a></p>
+        </section>
+        
+        <section id="troubleshooting" class="section">
+          <h2><span class="emoji-icon">🛠️</span>Troubleshooting</h2>
+          <ul>
+            <li><strong>Item not found:</strong> Double-check spelling and use the full item name.</li>
+            <li><strong>Error response:</strong> Try again after a moment. If it persists, contact support.</li>
+          </ul>
+        </section>
+        
+        <section id="user-attribution" class="section">
+          <h2><span class="emoji-icon">🧑</span>User Attribution</h2>
+          <p>All actions are attributed to your Slack username. If your name isn't recognized, it defaults to <strong>U&I Staff</strong>.</p>
+        </section>
+      </div>
+    </div>
+    
+    <footer>
+      <p>U&I Inventory Slackbot &copy; 2025</p>
+    </footer>
+    
+    <a href="#" class="back-to-top" title="Back to Top">↑</a>
+  </div>
+
+  <script>
+    // Make navigation links active when clicked
+    const navLinks = document.querySelectorAll('.nav-link');
+    
+    navLinks.forEach(link => {
+      link.addEventListener('click', function() {
+        navLinks.forEach(l => l.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+    
+    // Add smooth scrolling
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        const targetId = this.getAttribute('href');
+        if (targetId === '#') return;
+        
+        const targetElement = document.querySelector(targetId);
+        if (targetElement) {
+          window.scrollTo({
+            top: targetElement.offsetTop - 20,
+            behavior: 'smooth'
+          });
+        }
+      });
+    });
+    
+    // Highlight the current section in the navigation
+    window.addEventListener('scroll', function() {
+      const sections = document.querySelectorAll('.section');
+      let currentSection = '';
+      
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop - 100;
+        const sectionHeight = section.clientHeight;
+        if (pageYOffset >= sectionTop && pageYOffset < sectionTop + sectionHeight) {
+          currentSection = '#' + section.getAttribute('id');
+        }
+      });
+      
+      navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === currentSection) {
+          link.classList.add('active');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
