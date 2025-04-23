@@ -47,7 +47,7 @@ def create_inventory_item():
     data = request.get_json()
 
     # Define required fields based on the schema
-    required_fields = ['name', 'category', 'quantity', 'minQuantity', 'unit', 'location', 'status', 'condition', 'description']
+    required_fields = ['name', 'category', 'quantity', 'minQuantity', 'unit', 'location', 'status', 'condition']
     if not data or not all(key in data for key in ['name', 'quantity', 'location']):
         return jsonify({'error': 'Missing required fields: name, quantity, location'}), 400
 
