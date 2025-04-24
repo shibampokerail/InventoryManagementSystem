@@ -62,12 +62,26 @@ For admins to configure the Slack Bot.
 2. Install Dependencies:
 
     npm install
-3. Start the dev server:
+   
+3. Configure Environment variables:
+   Create a .env file in the root directory and add the following environment variables:
+   ```
+   AUTH0_SECRET
+   AUTH0_BASE_URL
+   AUTH0_ISSUER_BASE_URL
+   AUTH0_CLIENT_ID
+   AUTHO_CLIENT_SECRET
+   NEXT_PUBLIC_API_URL
+   ```
+   
+   
+5. Start the dev server:
 
-   npm run dev
+   npm run dev - start the development server
+   npm run build - build the project for production
 
-4. Open in your local browser:
-   http://localhost:3000
+6. Open in your local browser:
+   http://localhost:3006
 
 
 
