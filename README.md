@@ -1,5 +1,6 @@
 # Inventory Management Dashboard Backend files
-### Visit the wiki page and use the api manual for the process of technical testing.
+### Visit the [Wiki Page – Backend API Technical Manual](https://github.com/shibampokerail/InventoryManagementSystem/wiki/Backend-API-TECHNICAL-MANUAL-FOR-POSTMAN-TESTING) and use the API manual for the process of technical testing.
+
 
 The backend is made using python and flask along with JWT for autherization token.\
 Crud contains all the create, read, update and delete functions along with a utilis.py that have some utility functions.\ 
