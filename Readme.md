@@ -2,6 +2,11 @@
 
 A comprehensive inventory management system with a Slack bot interface, allowing teams to track, update, and manage inventory items directly from Slack.
 
+**After setting up the Frontend server**, follow this [video tutorial](https://youtu.be/fLMfvJNDZWE) to configure your Slackbot.
+
+**After you have completed installing the slack** for the Chatbot: [Read the manual](https://www.shibampokhrel.com/InventoryManagementSystem/)
+
+
 ## Features
 
 - **Slack Integration**: Interact with your inventory system directly from Slack
