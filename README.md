@@ -8,14 +8,14 @@ Follow this next steps to make populate the env and the virtual environment.
 
 To make this code work, you need to have a .env file in your flask-mongodb-api folder. the env is suppose to have the following arguments:
 ```
-- SECRET_KEY=
-- SLACKBOT_API_KEY=
+SECRET_KEY=
+SLACKBOT_API_KEY=
 
-- USERNAME = 
-- PASSWORD = 
-- HOST = 
-- PORT = 
-- DB_NAME = 
+USERNAME = 
+PASSWORD = 
+HOST = 
+PORT = 
+DB_NAME = 
 ```
 After this you have to create a virtual envirnment to install all dependicies.
 ```python
