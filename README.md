@@ -58,13 +58,13 @@ For admins to configure the Slack Bot.
 1. Clone the repository:
    
    git clone https://github.com/shibampokerail/InventoryManagementDashboard.git
-   cd InventoryManagementDashboard
+   <br>cd InventoryManagementDashboard
 2. Install Dependencies:
 
     npm install
    
 3. Configure Environment variables:
-   Create a .env file in the root directory and add the following environment variables:
+   <br>Create a .env file in the root directory and add the following environment variables:
    ```
    AUTH0_SECRET
    AUTH0_BASE_URL
@@ -78,10 +78,10 @@ For admins to configure the Slack Bot.
 5. Start the dev server:
 
    npm run dev - start the development server
-   npm run build - build the project for production
+   <br>npm run build - build the project for production
 
 6. Open in your local browser:
-   http://localhost:3006
+   <br>http://localhost:3006
 
 
 
