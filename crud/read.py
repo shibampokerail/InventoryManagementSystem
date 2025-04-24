@@ -1,9 +1,11 @@
 from flask import jsonify, logging, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
-from crud.utils import connect_to_mongo, api_key_or_jwt_required
+from crud.utils import connect_to_mongo, api_key_or_jwt_required, require_role
 from bson.objectid import ObjectId
 from bson.errors import InvalidId 
 import logging
+
+
 # Get all users
 @api_key_or_jwt_required()
 def get_users():
@@ -271,7 +273,7 @@ def get_usage_by_item(item_id):
         usage['itemId'] = str(usage['itemId'])
         usage['userId'] = str(usage['userId'])
     return jsonify(usages), 200
-
+@require_role("admin")
 @api_key_or_jwt_required()
 def get_slack_management():
     try:
