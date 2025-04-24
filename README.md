@@ -3,8 +3,8 @@
 
 The backend is made using python and flask along with JWT for autherization token.\
 Crud contains all the create, read, update and delete functions along with a utilis.py that have some utility functions.\ 
-The .env file should be located ourside the `CRUD` folder. \
-Follow this next steps to make populate the env and the virtual environment. \
+The .env file should be located ourside the `CRUD` folder.\
+Follow this next steps to make populate the env and the virtual environment.\
 
 To make this code work, you need to have a .env file in your flask-mongodb-api folder. the env is suppose to have the following arguments:
 ```
