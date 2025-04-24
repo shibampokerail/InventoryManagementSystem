@@ -50,21 +50,25 @@ For admins to configure the Slack Bot.
 - **Charts**: Recharts
 - **UI Components**: Radix UI
 - **State Management**: React Hooks
+- **Authentication**: Auth0 by Okta
 
 ---
 
 ## Installation
 
-1. Clone the repository:
-   
-   git clone https://github.com/shibampokerail/InventoryManagementDashboard.git
-   <br>cd InventoryManagementDashboard
-2. Install Dependencies:
-
+1. Clone the repository: (Dev or main based on your preferences and commit)
+   ```
+   git clone -b frontend-main https://github.com/shibampokerail/InventoryManagementDashboard.git
+   ```
+   ```
+   cd InventoryManagementDashboard
+   ```
+2. Install Dependencies (Make sure your terminal is in the same folder):
+   ```
     npm install
-   
+   ```
 3. Configure Environment variables:
-   <br>Create a .env file in the root directory and add the following environment variables:
+   <br> Create a .env file in the root directory and add the following environment variables:
    ```
    AUTH0_SECRET
    AUTH0_BASE_URL
@@ -74,12 +78,16 @@ For admins to configure the Slack Bot.
    NEXT_PUBLIC_API_URL
    ```
    
-   
 5. Start the dev server:
-
+```
    npm run dev - start the development server
-   <br>npm run build - build the project for production
 
+```
+
+```
+npm run build - build the project for production
+npm start
+```
 6. Open in your local browser:
    <br>http://localhost:3006
 
