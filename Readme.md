@@ -12,24 +12,6 @@ A comprehensive inventory management system with a Slack bot interface, allowing
 - **Order Management**: View and manage purchase orders
 - **Shift Coverage**: Request and confirm shift coverage between team members
 
-
-## System Architecture
-
-```mermaid
-System Architecture.download-icon {
-            cursor: pointer;
-            transform-origin: center;
-        }
-        .download-icon .arrow-part {
-            transition: transform 0.35s cubic-bezier(0.35, 0.2, 0.14, 0.95);
-             transform-origin: center;
-        }
-        button:has(.download-icon):hover .download-icon .arrow-part, button:has(.download-icon):focus-visible .download-icon .arrow-part {
-          transform: translateY(-1.5px);
-        }
-        #mermaid-diagram-r67{font-family:var(--font-geist-sans);font-size:12px;fill:#000000;}#mermaid-diagram-r67 .error-icon{fill:#552222;}#mermaid-diagram-r67 .error-text{fill:#552222;stroke:#552222;}#mermaid-diagram-r67 .edge-thickness-normal{stroke-width:1px;}#mermaid-diagram-r67 .edge-thickness-thick{stroke-width:3.5px;}#mermaid-diagram-r67 .edge-pattern-solid{stroke-dasharray:0;}#mermaid-diagram-r67 .edge-thickness-invisible{stroke-width:0;fill:none;}#mermaid-diagram-r67 .edge-pattern-dashed{stroke-dasharray:3;}#mermaid-diagram-r67 .edge-pattern-dotted{stroke-dasharray:2;}#mermaid-diagram-r67 .marker{fill:#666;stroke:#666;}#mermaid-diagram-r67 .marker.cross{stroke:#666;}#mermaid-diagram-r67 svg{font-family:var(--font-geist-sans);font-size:12px;}#mermaid-diagram-r67 p{margin:0;}#mermaid-diagram-r67 .label{font-family:var(--font-geist-sans);color:#000000;}#mermaid-diagram-r67 .cluster-label text{fill:#333;}#mermaid-diagram-r67 .cluster-label span{color:#333;}#mermaid-diagram-r67 .cluster-label span p{background-color:transparent;}#mermaid-diagram-r67 .label text,#mermaid-diagram-r67 span{fill:#000000;color:#000000;}#mermaid-diagram-r67 .node rect,#mermaid-diagram-r67 .node circle,#mermaid-diagram-r67 .node ellipse,#mermaid-diagram-r67 .node polygon,#mermaid-diagram-r67 .node path{fill:#eee;stroke:#999;stroke-width:1px;}#mermaid-diagram-r67 .rough-node .label text,#mermaid-diagram-r67 .node .label text{text-anchor:middle;}#mermaid-diagram-r67 .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#mermaid-diagram-r67 .node .label{text-align:center;}#mermaid-diagram-r67 .node.clickable{cursor:pointer;}#mermaid-diagram-r67 .arrowheadPath{fill:#333333;}#mermaid-diagram-r67 .edgePath .path{stroke:#666;stroke-width:2.0px;}#mermaid-diagram-r67 .flowchart-link{stroke:#666;fill:none;}#mermaid-diagram-r67 .edgeLabel{background-color:white;text-align:center;}#mermaid-diagram-r67 .edgeLabel p{background-color:white;}#mermaid-diagram-r67 .edgeLabel rect{opacity:0.5;background-color:white;fill:white;}#mermaid-diagram-r67 .labelBkg{background-color:rgba(255, 255, 255, 0.5);}#mermaid-diagram-r67 .cluster rect{fill:hsl(0, 0%, 98.9215686275%);stroke:#707070;stroke-width:1px;}#mermaid-diagram-r67 .cluster text{fill:#333;}#mermaid-diagram-r67 .cluster span{color:#333;}#mermaid-diagram-r67 div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:var(--font-geist-sans);font-size:12px;background:hsl(-160, 0%, 93.3333333333%);border:1px solid #707070;border-radius:2px;pointer-events:none;z-index:100;}#mermaid-diagram-r67 .flowchartTitleText{text-anchor:middle;font-size:18px;fill:#000000;}#mermaid-diagram-r67 .flowchart-link{stroke:hsl(var(--gray-400));stroke-width:1px;}#mermaid-diagram-r67 .marker,#mermaid-diagram-r67 marker,#mermaid-diagram-r67 marker *{fill:hsl(var(--gray-400))!important;stroke:hsl(var(--gray-400))!important;}#mermaid-diagram-r67 .label,#mermaid-diagram-r67 text,#mermaid-diagram-r67 text>tspan{fill:hsl(var(--black))!important;color:hsl(var(--black))!important;}#mermaid-diagram-r67 .background,#mermaid-diagram-r67 rect.relationshipLabelBox{fill:hsl(var(--white))!important;}#mermaid-diagram-r67 .entityBox,#mermaid-diagram-r67 .attributeBoxEven{fill:hsl(var(--gray-150))!important;}#mermaid-diagram-r67 .attributeBoxOdd{fill:hsl(var(--white))!important;}#mermaid-diagram-r67 .label-container,#mermaid-diagram-r67 rect.actor{fill:hsl(var(--white))!important;stroke:hsl(var(--gray-400))!important;}#mermaid-diagram-r67 line{stroke:hsl(var(--gray-400))!important;}#mermaid-diagram-r67 :root{--mermaid-font-family:var(--font-geist-sans);}Slack AppInventoBot (Slack Bot)Inventory API HandlerGemini AI HandlerBackend API ServerGoogle Gemini API
-```
-
 ## Setup Instructions
 
 ### Prerequisites
@@ -56,7 +38,7 @@ GEMINI_API_KEY=your_gemini_api_key  # Optional
 2. Install dependencies:
 
 ```plaintext
-pip install slack-bolt slack-sdk requests python-dotenv google-generativeai
+pip install -r reqiuirements.txt
 ```
 
 
@@ -141,10 +123,3 @@ def handle_command(self, say, channel, text, user_id):
 
 To add new AI functions, update the `function_declarations` in `GeminiHandler.__init__` and implement the corresponding function in `_execute_function`.
 
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
