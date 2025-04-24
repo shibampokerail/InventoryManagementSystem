@@ -1,248 +1,150 @@
-# Slack Bot Documentation
+### Inventory Management Slack Bot
 
-This README provides all the information you need to set up and use a Slack bot that manages shift requests, inventory tracking, and Slack interactions. The bot integrates with Slack's Web API and the Slack Bolt framework to offer a variety of helpful features for automating tasks in your Slack workspace.
+A comprehensive inventory management system with a Slack bot interface, allowing teams to track, update, and manage inventory items directly from Slack.
 
----
+## Features
 
-## Table of Contents
-
-1. [Overview](#overview)
-2. [Technologies Used](#technologies-used)
-3. [Prerequisites](#prerequisites)
-4. [Setup](#setup)
-5. [Classes and Methods](#classes-and-methods)
-6. [Commands](#commands)
-7. [Usage](#usage)
+- **Slack Integration**: Interact with your inventory system directly from Slack
+- **AI-Powered Responses**: Natural language processing using Google's Gemini AI
+- **Inventory Tracking**: Monitor stock levels, usage, and restocking
+- **Notifications**: Automatic alerts for low stock items
+- **User Management**: Track who uses or restocks items
+- **Order Management**: View and manage purchase orders
+- **Shift Coverage**: Request and confirm shift coverage between team members
 
 
----
+## System Architecture
 
-## Overview
-
-This Slack bot has the following capabilities:
-
-- **Post messages**: Send messages to Slack channels using Slack's Web API.
-- **Inventory management**: Track and update inventory, alert when items need to be restocked, or are running low.
-- **Shift coverage**: Manage shift requests and coverage through Slack messages and reactions.
-- **Set reminders**: Set Slack reminders for users based on a specified time.
-- **Logs**: Maintain a log of all inventory actions and shift coverage requests.
-
----
-
-## Technologies Used
-
-This bot uses the following technologies:
-
-- **Python**: A high-level programming language for creating the bot.
-- **Slack SDK**: Slack’s official Python SDK for connecting to Slack's Web API and Bolt framework.
-- **Regular Expressions (Regex)**: For parsing messages related to inventory and shift requests.
-- **Socket Mode**: Enables real-time interactions with Slack events.
-
----
-
-## Prerequisites
-
-Before setting up this bot, ensure that you have the following:
-
-- Python 3.6 or higher installed.
-- A Slack workspace where you can create a bot.
-- Slack API token for the bot (`SLACK_BOT_TOKEN`).
-- Slack app token for Socket Mode (`SLACK_APP_TOKEN`).
-
-Install required dependencies by running:
-
-```bash
-pip install slack_sdk slack_bolt requests
+```mermaid
+System Architecture.download-icon {
+            cursor: pointer;
+            transform-origin: center;
+        }
+        .download-icon .arrow-part {
+            transition: transform 0.35s cubic-bezier(0.35, 0.2, 0.14, 0.95);
+             transform-origin: center;
+        }
+        button:has(.download-icon):hover .download-icon .arrow-part, button:has(.download-icon):focus-visible .download-icon .arrow-part {
+          transform: translateY(-1.5px);
+        }
+        #mermaid-diagram-r67{font-family:var(--font-geist-sans);font-size:12px;fill:#000000;}#mermaid-diagram-r67 .error-icon{fill:#552222;}#mermaid-diagram-r67 .error-text{fill:#552222;stroke:#552222;}#mermaid-diagram-r67 .edge-thickness-normal{stroke-width:1px;}#mermaid-diagram-r67 .edge-thickness-thick{stroke-width:3.5px;}#mermaid-diagram-r67 .edge-pattern-solid{stroke-dasharray:0;}#mermaid-diagram-r67 .edge-thickness-invisible{stroke-width:0;fill:none;}#mermaid-diagram-r67 .edge-pattern-dashed{stroke-dasharray:3;}#mermaid-diagram-r67 .edge-pattern-dotted{stroke-dasharray:2;}#mermaid-diagram-r67 .marker{fill:#666;stroke:#666;}#mermaid-diagram-r67 .marker.cross{stroke:#666;}#mermaid-diagram-r67 svg{font-family:var(--font-geist-sans);font-size:12px;}#mermaid-diagram-r67 p{margin:0;}#mermaid-diagram-r67 .label{font-family:var(--font-geist-sans);color:#000000;}#mermaid-diagram-r67 .cluster-label text{fill:#333;}#mermaid-diagram-r67 .cluster-label span{color:#333;}#mermaid-diagram-r67 .cluster-label span p{background-color:transparent;}#mermaid-diagram-r67 .label text,#mermaid-diagram-r67 span{fill:#000000;color:#000000;}#mermaid-diagram-r67 .node rect,#mermaid-diagram-r67 .node circle,#mermaid-diagram-r67 .node ellipse,#mermaid-diagram-r67 .node polygon,#mermaid-diagram-r67 .node path{fill:#eee;stroke:#999;stroke-width:1px;}#mermaid-diagram-r67 .rough-node .label text,#mermaid-diagram-r67 .node .label text{text-anchor:middle;}#mermaid-diagram-r67 .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#mermaid-diagram-r67 .node .label{text-align:center;}#mermaid-diagram-r67 .node.clickable{cursor:pointer;}#mermaid-diagram-r67 .arrowheadPath{fill:#333333;}#mermaid-diagram-r67 .edgePath .path{stroke:#666;stroke-width:2.0px;}#mermaid-diagram-r67 .flowchart-link{stroke:#666;fill:none;}#mermaid-diagram-r67 .edgeLabel{background-color:white;text-align:center;}#mermaid-diagram-r67 .edgeLabel p{background-color:white;}#mermaid-diagram-r67 .edgeLabel rect{opacity:0.5;background-color:white;fill:white;}#mermaid-diagram-r67 .labelBkg{background-color:rgba(255, 255, 255, 0.5);}#mermaid-diagram-r67 .cluster rect{fill:hsl(0, 0%, 98.9215686275%);stroke:#707070;stroke-width:1px;}#mermaid-diagram-r67 .cluster text{fill:#333;}#mermaid-diagram-r67 .cluster span{color:#333;}#mermaid-diagram-r67 div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:var(--font-geist-sans);font-size:12px;background:hsl(-160, 0%, 93.3333333333%);border:1px solid #707070;border-radius:2px;pointer-events:none;z-index:100;}#mermaid-diagram-r67 .flowchartTitleText{text-anchor:middle;font-size:18px;fill:#000000;}#mermaid-diagram-r67 .flowchart-link{stroke:hsl(var(--gray-400));stroke-width:1px;}#mermaid-diagram-r67 .marker,#mermaid-diagram-r67 marker,#mermaid-diagram-r67 marker *{fill:hsl(var(--gray-400))!important;stroke:hsl(var(--gray-400))!important;}#mermaid-diagram-r67 .label,#mermaid-diagram-r67 text,#mermaid-diagram-r67 text>tspan{fill:hsl(var(--black))!important;color:hsl(var(--black))!important;}#mermaid-diagram-r67 .background,#mermaid-diagram-r67 rect.relationshipLabelBox{fill:hsl(var(--white))!important;}#mermaid-diagram-r67 .entityBox,#mermaid-diagram-r67 .attributeBoxEven{fill:hsl(var(--gray-150))!important;}#mermaid-diagram-r67 .attributeBoxOdd{fill:hsl(var(--white))!important;}#mermaid-diagram-r67 .label-container,#mermaid-diagram-r67 rect.actor{fill:hsl(var(--white))!important;stroke:hsl(var(--gray-400))!important;}#mermaid-diagram-r67 line{stroke:hsl(var(--gray-400))!important;}#mermaid-diagram-r67 :root{--mermaid-font-family:var(--font-geist-sans);}Slack AppInventoBot (Slack Bot)Inventory API HandlerGemini AI HandlerBackend API ServerGoogle Gemini API
 ```
 
----
+## Setup Instructions
 
-## Setup
+### Prerequisites
 
-### 1. Environment Variables
+- Python 3.8+
+- Slack workspace with admin privileges
+- Google Gemini API key (optional, for AI features)
+- Backend inventory management API
 
-Before running the bot, you'll need to set two important environment variables for authentication:
 
-- `SLACK_BOT_TOKEN`: Your bot's Slack OAuth token.
-- `SLACK_APP_TOKEN`: The app token for Socket Mode to allow real-time event listening.
+### Environment Variables
 
-Set these environment variables in your terminal:
+Create a `.env` file in the project root with the following variables:
 
-```bash
-export SLACK_BOT_TOKEN="xoxb-your-bot-token"
-export SLACK_APP_TOKEN="xapp-your-app-token"
+```plaintext
+API_BASE_URL=https://your-inventory-api-url.com
+API_TOKEN=your_api_token
+GEMINI_API_KEY=your_gemini_api_key  # Optional
 ```
 
-### 2. Run the Bot
+### Installation
 
-Once your environment is set up, run the bot with the following command:
+1. Clone the repository
+2. Install dependencies:
 
-```bash
-python bot.py
+```plaintext
+pip install slack-bolt slack-sdk requests python-dotenv google-generativeai
 ```
 
-The bot will begin listening for events and interact with your Slack workspace as specified.
 
----
+3. Configure your Slack app:
 
-## Classes and Methods
+1. Create a new Slack app at [https://api.slack.com/apps](https://api.slack.com/apps)
+2. Enable Socket Mode
+3. Add bot token scopes: `chat:write`, `reactions:read`, `users:read`, `channels:manage`
+4. Install the app to your workspace
+5. Store the bot token and app token in your backend system
 
-### 1. `BotWebAPI`
 
-This class is responsible for interacting directly with Slack’s Web API. It has methods for posting messages, joining channels, and setting reminders.
 
-#### Methods:
-- **`post_message(message, channel_id)`**: Posts a message to a Slack channel.
-- **`join_channel(channel_id)`**: Makes the bot join a specific Slack channel.
-- **`set_reminder(user_id, reminder_text, reminder_time)`**: Sets a reminder for a specific user.
+4. Start the bot:
 
-### 2. `BotBolt`
-
-This class uses Slack's Bolt framework to interact with events in real-time, such as messages and reactions. It provides more complex functionality for inventory management, shift requests, and logging.
-
-#### Methods:
-- **`listener()`**: The main event listener that responds to messages and reactions.
-- **`extract_inventory_data(text)`**: Extracts inventory-related actions from messages, such as restocking or removing items.
-- **`update_inventory(say, channel, item, quantity, user_id)`**: Updates the inventory and alerts when stock is low.
-- **`refill_inventory(say, channel, item, quantity, user_id)`**: Refills an item in the inventory.
-- **`show_inventory(say, channel, text)`**: Displays current inventory or checks stock of a specific item.
-- **`log_action(user_id, message)`**: Logs actions (e.g., inventory changes) in a dedicated logs channel.
-- **`detect_shift_request(text)`**: Detects shift coverage requests in messages.
-- **`log_shift_request(user_id, text, ts)`**: Logs a shift coverage request in the manager's logs channel.
-- **`detect_shift_acceptance(text, user_id)`**: Detects when a shift coverage request is accepted.
-- **`confirm_shift_coverage(covering_user, text)`**: Confirms and logs when a shift is covered.
-- **`get_or_create_logs_channel(channel_name)`**: Retrieves or creates a logs channel for shift requests and inventory updates.
-- **`handle_reaction_shift_coverage(covering_user, message_ts)`**: Handles reactions to shift coverage requests and logs the coverage.
-
----
-
-## Commands
-
-This section lists the types of commands the bot listens for and the expected responses.
-
-### 1. **Shift Requests**
-
-The bot can detect and log shift coverage requests. When a user requests shift coverage, the bot responds as follows:
-
-#### Command Examples:
-- **"Can someone please cover my shift?"**
-- **"I cannot come in today, is anyone available to cover?"**
-- **"Cover my evening shift!"**
-
-#### Bot Response:
-- Logs the request in the **manager-logs** channel.
-- Sends a message in the channel confirming the shift coverage request.
-
-Example:
-```
- Shift coverage request from <@U12345678>: "Can someone please cover my evening shift?"
+```plaintext
+python main.py
 ```
 
----
 
-### 2. **Shift Acceptance**
 
-When someone accepts a shift coverage request, the bot can detect the acceptance and confirm the coverage.
-
-#### Command Examples:
-- **"I can cover the shift."**
-- **"I’ll cover it!"**
-- **"Can cover"**
-
-#### Bot Response:
-- Logs the coverage in the **manager-logs** channel.
-- Confirms the coverage with a message like:
-  ```
-   <@U87654321> has agreed to cover <@U12345678>'s shift!
-  ```
-
----
-
-### 3. **Inventory Management**
-
-The bot can manage inventory by updating, replenishing, or checking the stock of items. Commands related to inventory include:
-
-#### Command Examples:
-- **"How many paper towels do we have?"**
-- **"Restock toilet paper by 3 rolls."**
-- **"Used 2 packs of liquid soap."**
-
-#### Bot Response:
-- **Inventory check**: Displays the current stock.
-  ```
-  Current stock of paper towels: 10
-  ```
-- **Restocking**: Updates the stock and notifies when items are restocked.
-  ```
-  5 paper towels added back to the inventory. Total: 15 remaining.
-  ```
-- **Updating inventory**: Notifies if stock is low or out of stock.
-  ```
-  2 packs of liquid soap removed from the inventory. 3 remaining.
-  ```
-
----
-
-### 4. **General Commands**
-
-The bot can also respond to other general queries, like showing the inventory or providing reminders.
-
-#### Command Examples:
-- **"Show inventory."**
-- **"Set a reminder for 9 AM to send a report."**
-
-#### Bot Response:
-- **Inventory display**: Lists all current items and their quantities.
-  ```
-  **Current Inventory:**
-  - paper towels: 10
-  - packs of liquid soap: 5
-  - toilet paper: 12
-  ```
-- **Setting reminders**: Confirms that the reminder has been set.
-  ```
-  Reminder set for 9:00 AM: "Send the report."
-  ```
-
----
 
 ## Usage
 
-### 1. Posting Messages
+### Basic Commands
 
-To post a message to a Slack channel, use the `post_message` method of the `BotWebAPI` class. This method takes the message content and the channel ID as arguments:
+- `!help` - Show available commands
+- `!item [name]` - Get details about an inventory item
+- `!updateitem [item_id] [field] [value]` - Update an inventory item
+- `!notifications` - Show recent system notifications
+- `!orders` - Show recent orders
+- `!aimode [on|off]` - Toggle AI-powered responses
+
+
+### Natural Language (AI Mode)
+
+When AI mode is enabled, you can interact with the bot using natural language:
+
+- "How many paper towels do we have?"
+- "We used 3 packs of toilet paper today"
+- "I just restocked 10 bottles of hand soap"
+- "Show me recent orders"
+
+
+### Shift Coverage
+
+Request shift coverage by saying:
+
+- "I need coverage for my shift tomorrow"
+- "Can someone cover for me on Friday?"
+
+
+Accept coverage by:
+
+- Replying "I can cover"
+- Adding a ✅ reaction to the request
+
+
+## Project Structure
+
+- `main.py` - Entry point that initializes the bot
+- `InventoBot.py` - Main bot implementation with Slack interaction logic
+- `InventoryAPI.py` - API handler for communicating with the backend
+- `AI.py` - Gemini AI integration for natural language processing
+
+
+## Development
+
+### Adding New Commands
+
+To add a new command, modify the `handle_command` method in `InventoBot.py`:
 
 ```python
-bot_web_api.post_message("Hello, team! This is a test message.", "C08KG5C89AQ")
+def handle_command(self, say, channel, text, user_id):
+    # ...
+    elif command == "your_new_command":
+        self.cmd_your_new_function(say, args)
+    # ...
 ```
 
-### 2. Managing Inventory
+### Extending AI Capabilities
 
-The bot can handle inventory actions such as restocking items or removing items when they are used. For example:
+To add new AI functions, update the `function_declarations` in `GeminiHandler.__init__` and implement the corresponding function in `_execute_function`.
 
-- Restocking inventory:
-  ```python
-  bot_bolt.refill_inventory(say, channel, "paper towels", 5, user_id)
-  ```
+## License
 
-- Removing items from inventory:
-  ```python
-  bot_bolt.update_inventory(say, channel, "toilet paper", 2, user_id)
-  ```
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-- Showing inventory status:
-  ```python
-  bot_bolt.show_inventory(say, channel, text)
-  ```
+## Contributing
 
-### 3. Shift Coverage
-
-To manage shift coverage, the bot listens for shift requests and reactions. You can post a shift coverage request like:
-
-```
-Can someone please cover my evening shift?
-```
-
-The bot detects this message and logs the request. When someone agrees to cover the shift, the bot confirms the coverage.
-
----
+Contributions are welcome! Please feel free to submit a Pull Request.
